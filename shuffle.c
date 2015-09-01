@@ -85,7 +85,7 @@ int shuffle_merge(int num) {
     char filename[MAX_STRING_LENGTH];
     FILE **fid, *fout = stdout;
     
-    array = malloc(sizeof(CREC) * array_size * num);
+    array = malloc(sizeof(CREC) * array_size);
     fid = malloc(sizeof(FILE) * num);
     for(fidcounter = 0; fidcounter < num; fidcounter++) { //num = number of temporary files to merge
         sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
