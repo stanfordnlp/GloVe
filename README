@@ -4,6 +4,9 @@ _____________________________________________________
 
 We provide an implementation of the GloVe model for learning word representations, as well as some auxiliary tools to construct word-word cooccurrence matrices from large corpora.
 
+Please see the project page for more information:
+http://nlp.stanford.edu/projects/glove/
+
 This package includes four main tools:
 1) vocab_count
 Constructs unigram counts from a corpus, and optionally threshholds the resulting vocabulary based on total vocabulary size or minimum frequency count.
