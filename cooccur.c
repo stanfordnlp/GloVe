@@ -307,7 +307,7 @@ int get_cooccurrence() {
     if(verbose > 1) fprintf(stderr, "loaded %lld words.\nBuilding lookup table...", vocab_size);
     
     /* Build auxiliary lookup table used to index into bigram_table */
-    lookup = (long long *)calloc( vocab_size , sizeof(long long) );
+    lookup = (long long *)calloc( vocab_size + 1, sizeof(long long) );
     if (lookup == NULL) {
         fprintf(stderr, "Couldn't allocate memory!");
         return 1;
