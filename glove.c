@@ -40,6 +40,7 @@ typedef struct cooccur_rec {
 } CREC;
 
 int verbose = 2; // 0, 1, or 2
+int use_unk_vec = 1; // 0 or 1
 int num_threads = 8; // pthreads
 int num_iter = 25; // Number of full passes through cooccurrence matrix
 int vector_size = 50; // Word vector size
@@ -165,6 +166,8 @@ int save_params() {
         if(fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
         for(a = 0; a < vocab_size; a++) {
             if(fscanf(fid,format,word) == 0) return 1;
+            // input vocab cannot contain special glove_unk keyword
+            if(strcmp(word, "glove_unk") == 0) return 1;
             fprintf(fout, "%s",word);
             if(model == 0) { // Save all parameters (including bias)
                 for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
@@ -183,6 +186,36 @@ int save_params() {
             }
             if(fscanf(fid,format,word) == 0) return 1; // Eat irrelevant frequency entry
         }
+
+        if (use_unk_vec) {
+            real* unk_vec = (real*)calloc((vector_size + 1), sizeof(real));
+            real* unk_context = (real*)calloc((vector_size + 1), sizeof(real));
+            word = "glove_unk";
+
+            int num_rare_words = vocab_size < 100 ? vocab_size : 100;
+
+            for(a = vocab_size - num_rare_words; a < vocab_size; a++) {
+                for(b = 0; b < (vector_size + 1); b++) {
+                    unk_vec[b] += W[a * (vector_size + 1) + b] / num_rare_words;
+                    unk_context[b] += W[(vocab_size + a) * (vector_size + 1) + b] / num_rare_words;
+                }
+            }
+
+            fprintf(fout, "%s",word);
+            if(model == 0) { // Save all parameters (including bias)
+                for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", unk_vec[b]);
+                for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", unk_context[b]);
+            }
+            if(model == 1) // Save only "word" vectors (without bias)
+                for(b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b]);
+            if(model == 2) // Save "word + context word" vectors (without bias)
+                for(b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b] + unk_context[b]);
+            fprintf(fout,"\n");
+
+            free(unk_vec);
+            free(unk_context);
+        }
+
         fclose(fid);
         fclose(fout);
         if(save_gradsq > 0) fclose(fgs);
