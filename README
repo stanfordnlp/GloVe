@@ -17,6 +17,6 @@ Shuffles the binary file of cooccurrence statistics produced by 'cooccur'. For l
 4) glove
 Train the GloVe model on the specified cooccurrence data, which typically will be the output of the 'shuffle' tool. The user should supply a vocabulary file, as given by 'vocab', and may specify a number of other parameters, which are described by running './glove'.
 
-The package also provides a demo script 'demo.sh'. It downloads a small corpus, consisting of the first 100M characters of Wikipedia, collects unigram counts, constructs and shuffles cooccurrence data, and trains a simple version of the GloVe model. It also runs a word analogy evaluation script in Matlab.
+The package also provides a demo script 'demo.sh'. It downloads a small corpus, consisting of the first 100M characters of Wikipedia, collects unigram counts, constructs and shuffles cooccurrence data, and trains a simple version of the GloVe model. It also runs a word analogy evaluation script in python.
 
 All work contained in this package is licensed under the Apache License, Version 2.0. See the include LICENSE file.
