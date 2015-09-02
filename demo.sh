@@ -35,7 +35,11 @@ if [[ $? -eq 0 ]]
        $BUILDDIR/glove -save-file $SAVE_FILE -threads $NUM_THREADS -input-file $COOCCURRENCE_SHUF_FILE -x-max $X_MAX -iter $MAX_ITER -vector-size $VECTOR_SIZE -binary $BINARY -vocab-file $VOCAB_FILE -verbose $VERBOSE
        if [[ $? -eq 0 ]]
        then
-	   matlab -nodisplay -nodesktop -nojvm -nosplash < ./eval/read_and_evaluate.m 1>&2 
+           if [ "$1" = 'matlab' ]; then
+               matlab -nodisplay -nodesktop -nojvm -nosplash < ./eval/matlab/read_and_evaluate.m 1>&2 
+           else
+               python eval/python/evaluate.py
+           fi
        fi
     fi
   fi
