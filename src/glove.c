@@ -166,8 +166,8 @@ int save_params() {
         if(fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
         for(a = 0; a < vocab_size; a++) {
             if(fscanf(fid,format,word) == 0) return 1;
-            // input vocab cannot contain special glove_unk keyword
-            if(strcmp(word, "glove_unk") == 0) return 1;
+            // input vocab cannot contain special <unk> keyword
+            if(strcmp(word, "<unk>") == 0) return 1;
             fprintf(fout, "%s",word);
             if(model == 0) { // Save all parameters (including bias)
                 for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
@@ -190,7 +190,7 @@ int save_params() {
         if (use_unk_vec) {
             real* unk_vec = (real*)calloc((vector_size + 1), sizeof(real));
             real* unk_context = (real*)calloc((vector_size + 1), sizeof(real));
-            word = "glove_unk";
+            word = "<unk>";
 
             int num_rare_words = vocab_size < 100 ? vocab_size : 100;
 
