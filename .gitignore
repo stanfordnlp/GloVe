@@ -34,3 +34,6 @@
 
 build/*
 *.swp
+
+# OS X stuff
+._*
