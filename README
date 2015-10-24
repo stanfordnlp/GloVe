@@ -9,7 +9,7 @@ http://nlp.stanford.edu/projects/glove/
 
 This package includes four main tools:
 1) vocab_count
-Constructs unigram counts from a corpus, and optionally thresholds the resulting vocabulary based on total vocabulary size or minimum frequency count.
+Constructs unigram counts from a corpus, and optionally thresholds the resulting vocabulary based on total vocabulary size or minimum frequency count. This file should already consist of whitespace-separated tokens. Use something like the Stanford Tokenizer (http://nlp.stanford.edu/software/tokenizer.shtml) first on raw text.
 2) cooccur
 Constructs word-word cooccurrence statistics from a corpus. The user should supply a vocabulary file, as produced by 'vocab_count', and may specify a variety of parameters, as described by running './cooccur'.
 3) shuffle
