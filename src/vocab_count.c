@@ -20,7 +20,7 @@
 //  For more information, bug reports, fixes, contact:
 //    Jeffrey Pennington (jpennin@stanford.edu)
 //    GlobalVectors@googlegroups.com
-//    http://www-nlp.stanford.edu/projects/glove/
+//    http://nlp.stanford.edu/projects/glove/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,5 +207,4 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-min-count", argc, argv)) > 0) min_count = atoll(argv[i + 1]);
     return get_counts();
 }
-
 

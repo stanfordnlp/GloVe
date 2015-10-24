@@ -19,7 +19,7 @@
 //  For more information, bug reports, fixes, contact:
 //    Jeffrey Pennington (jpennin@stanford.edu)
 //    GlobalVectors@googlegroups.com
-//    http://www-nlp.stanford.edu/projects/glove/
+//    http://nlp.stanford.edu/projects/glove/
 
 #include <stdio.h>
 #include <string.h>
