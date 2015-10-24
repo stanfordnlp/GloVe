@@ -48,7 +48,11 @@ def evaluate_vectors(W, vocab, ivocab):
     # depending on system and vocab size
     split_size = 100
 
+    correct_sem = 0; # count correct semantic questions
+    correct_syn = 0; # count correct syntactic questions
     correct_tot = 0 # count correct questions
+    count_sem = 0; # count all semantic questions
+    count_syn = 0; # count all syntactic questions
     count_tot = 0 # count all questions
     full_count = 0 # count all questions, including those with unknown words
 
@@ -79,16 +83,27 @@ def evaluate_vectors(W, vocab, ivocab):
             # predicted word index
             predictions[subset] = np.argmax(dist, 0).flatten()
 
-        val = (ind4 == predictions) #correct predictions
+        val = (ind4 == predictions) # correct predictions
         count_tot = count_tot + len(ind1)
         correct_tot = correct_tot + sum(val)
+        if i < 5:
+            count_sem = count_sem + len(ind1)
+            correct_sem = correct_sem + sum(val)
+        else:
+            count_syn = count_syn + len(ind1)
+            correct_syn = correct_syn + sum(val)
+
+        print("%s:" % filenames[i])
         print('ACCURACY TOP1: %.2f%% (%d/%d)' %
             (np.mean(val) * 100, np.sum(val), len(val)))
 
-    print('Total accuracy: %.2f%%' %
-        (100 * correct_tot / float(count_tot)))
     print('Questions seen/total: %.2f%% (%d/%d)' %
         (100 * count_tot / float(full_count), count_tot, full_count))
+    print('Semantic accuracy: %.2f%%  (%i/%i)' %
+        (100 * correct_sem / float(count_sem), correct_sem, count_sem))
+    print('Syntactic accuracy: %.2f%%  (%i/%i)' %
+        (100 * correct_syn / float(count_syn), correct_syn, count_syn))
+    print('Total accuracy: %.2f%%  (%i/%i)' % (100 * correct_tot / float(count_tot), correct_tot, count_tot))
 
 
 if __name__ == "__main__":
