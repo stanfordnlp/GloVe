@@ -1,6 +1,5 @@
 import argparse
 import numpy as np
-import sys
 
 def main():
     parser = argparse.ArgumentParser()
@@ -14,10 +13,7 @@ def main():
         vectors = {}
         for line in f:
             vals = line.rstrip().split(' ')
-            if sys.version_info >= (3, 0):
-                vectors[vals[0]] = list(map(float, vals[1:]))
-            else:
-                vectors[vals[0]] = map(float, vals[1:])
+            vectors[vals[0]] = [float(x) for x in vals[1:]]
 
     vocab_size = len(words)
     vocab = {w: idx for idx, w in enumerate(words)}
@@ -25,11 +21,7 @@ def main():
 
     vector_dim = len(vectors[ivocab[0]])
     W = np.zeros((vocab_size, vector_dim))
-    if sys.version_info >= (3, 0):
-        vectors_to_iterate = vectors.items()
-    else:
-        vectors_to_iterate = vectors.iteritems()
-    for word, v in vectors_to_iterate:
+    for word, v in vectors.items():
         if word == '<unk>':
             continue
         W[vocab[word], :] = v
@@ -64,11 +56,7 @@ def evaluate_vectors(W, vocab, ivocab):
     count_tot = 0 # count all questions
     full_count = 0 # count all questions, including those with unknown words
 
-    if sys.version_info >= (3, 0):
-        file_iterator = range(len(filenames))
-    else:
-        file_iterator = xrange(len(filenames))
-    for i in file_iterator:
+    for i in range(len(filenames)):
         with open('%s/%s' % (prefix, filenames[i]), 'r') as f:
             full_data = [line.rstrip().split(' ') for line in f]
             full_count += len(full_data)
@@ -79,12 +67,7 @@ def evaluate_vectors(W, vocab, ivocab):
 
         predictions = np.zeros((len(indices),))
         num_iter = int(np.ceil(len(indices) / float(split_size)))
-
-        if sys.version_info >= (3, 0):
-            number_iterator = range(num_iter)
-        else:
-            number_iterator = xrange(num_iter)
-        for j in number_iterator:
+        for j in range(num_iter):
             subset = np.arange(j*split_size, min((j + 1)*split_size, len(ind1)))
 
             pred_vec = (W[ind2[subset], :] - W[ind1[subset], :]
@@ -92,11 +75,7 @@ def evaluate_vectors(W, vocab, ivocab):
             #cosine similarity if input W has been normalized
             dist = np.dot(W, pred_vec.T)
 
-            if sys.version_info >= (3, 0):
-                subset_iterator = range(len(subset))
-            else:
-                subset_iterator = xrange(len(subset))
-            for k in subset_iterator:
+            for k in range(len(subset)):
                 dist[ind1[subset[k]], k] = -np.Inf
                 dist[ind2[subset[k]], k] = -np.Inf
                 dist[ind3[subset[k]], k] = -np.Inf
