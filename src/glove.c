@@ -64,12 +64,12 @@ void initialize_parameters() {
 	vector_size++; // Temporarily increment to allocate space for bias
     
 	/* Allocate space for word vectors and context word vectors, and correspodning gradsq */
-	a = posix_memalign((void **)&W, 128, 2 * vocab_size * vector_size * sizeof(real)); // Might perform better than malloc
+	a = posix_memalign((void **)&W, 128, 2 * vocab_size * (vector_size + 1) * sizeof(real)); // Might perform better than malloc
     if (W == NULL) {
         fprintf(stderr, "Error allocating memory for W\n");
         exit(1);
     }
-    a = posix_memalign((void **)&gradsq, 128, 2 * vocab_size * vector_size * sizeof(real)); // Might perform better than malloc
+    a = posix_memalign((void **)&gradsq, 128, 2 * vocab_size * (vector_size + 1) * sizeof(real)); // Might perform better than malloc
 	if (gradsq == NULL) {
         fprintf(stderr, "Error allocating memory for gradsq\n");
         exit(1);
