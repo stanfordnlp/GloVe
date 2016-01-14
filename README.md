@@ -11,8 +11,7 @@ man -> woman             |  city -> zip | comparative -> superlative
 ![](http://nlp.stanford.edu/projects/glove/images/man_woman_small.jpg)  |   ![](http://nlp.stanford.edu/projects/glove/images/city_zip_small.jpg) |  ![](http://nlp.stanford.edu/projects/glove/images/comparative_superlative_small.jpg)
 
 ## Download pre-trained word vectors
-Pre-trained word vectors are made available under the <a href="http://opendatacommons.org/licenses/pddl/">Public Domain Dedication
-and License</a>
+The links below contain word vectors obtained from the respective corpora. If you want word vectors trained on massive web datasets, you need only download one of these text files! Pre-trained word vectors are made available under the <a href="http://opendatacommons.org/licenses/pddl/">Public Domain Dedication and License</a>. 
 <div class="entry">
 <ul style="padding-left:0px; margin-top:0px; margin-bottom:0px">
   <li> <a href="http://dumps.wikimedia.org/enwiki/20140102/">Wikipedia 2014</a> + <a href="https://catalog.ldc.upenn.edu/LDC2011T07">Gigaword 5</a> (6B tokens, 400K vocab, uncased, 50d, 100d, 200d, &amp; 300d vectors, 822 MB download): <a href="http://nlp.stanford.edu/data/wordvecs/glove.6B.zip">glove.6B.zip</a> </li>
@@ -23,6 +22,7 @@ and License</a>
 </div>
 
 ## Train word vectors on a new corpus
+If the web datasets above don't match the semantics of your end use case, you can train word vectors on your own corpus.
 
     $ git clone http://github.com/stanfordnlp/glove
     $ cd glove && make
