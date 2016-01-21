@@ -135,7 +135,7 @@ int save_params() {
     long long a, b;
     char format[20];
     char output_file[MAX_STRING_LENGTH], output_file_gsq[MAX_STRING_LENGTH];
-    char *word = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    char *word = malloc(sizeof(char) * MAX_STRING_LENGTH + 1);
     FILE *fid, *fout, *fgs;
     
     if(use_binary > 0) { // Save parameters in binary file
