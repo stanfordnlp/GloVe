@@ -49,7 +49,7 @@ long long max_vocab = 0; // max_vocab = 0 for no limit
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
-    while(*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
+    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
     return(*s1 - *s2);
 }
 
@@ -57,7 +57,7 @@ int scmp( char *s1, char *s2 ) {
 /* Vocab frequency comparison; break ties alphabetically */
 int CompareVocabTie(const void *a, const void *b) {
     long long c;
-    if( (c = ((VOCAB *) b)->count - ((VOCAB *) a)->count) != 0) return ( c > 0 ? 1 : -1 );
+    if ( (c = ((VOCAB *) b)->count - ((VOCAB *) a)->count) != 0) return ( c > 0 ? 1 : -1 );
     else return (scmp(((VOCAB *) a)->word,((VOCAB *) b)->word));
     
 }
@@ -65,7 +65,7 @@ int CompareVocabTie(const void *a, const void *b) {
 /* Vocab frequency comparison; no tie-breaker */
 int CompareVocab(const void *a, const void *b) {
     long long c;
-    if( (c = ((VOCAB *) b)->count - ((VOCAB *) a)->count) != 0) return ( c > 0 ? 1 : -1 );
+    if ( (c = ((VOCAB *) b)->count - ((VOCAB *) a)->count) != 0) return ( c > 0 ? 1 : -1 );
     else return 0;
 }
 
@@ -76,7 +76,7 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
     char c;
     unsigned int h;
     h = seed;
-    for(; (c =* word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
+    for (; (c =* word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
     return((unsigned int)((h&0x7fffffff) % tsize));
 }
 
@@ -85,7 +85,7 @@ HASHREC ** inithashtable() {
     int	i;
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
-    for(i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
+    for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
     return(ht);
 }
 
@@ -94,14 +94,14 @@ void hashinsert(HASHREC **ht, char *w) {
     HASHREC	*htmp, *hprv;
     unsigned int hval = HASHFN(w, TSIZE, SEED);
     
-    for(hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
-    if(htmp == NULL) {
+    for (hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
+    if (htmp == NULL) {
         htmp = (HASHREC *) malloc( sizeof(HASHREC) );
         htmp->word = (char *) malloc( strlen(w) + 1 );
         strcpy(htmp->word, w);
         htmp->count = 1;
         htmp->next = NULL;
-        if( hprv==NULL )
+        if ( hprv==NULL )
             ht[hval] = htmp;
         else
             hprv->next = htmp;
@@ -109,7 +109,7 @@ void hashinsert(HASHREC **ht, char *w) {
     else {
         /* new records are not moved to front */
         htmp->count++;
-        if(hprv != NULL) {
+        if (hprv != NULL) {
             /* move to front on access */
             hprv->next = htmp->next;
             htmp->next = ht[hval];
@@ -129,44 +129,44 @@ int get_counts() {
     FILE *fid = stdin;
     
     fprintf(stderr, "BUILDING VOCABULARY\n");
-    if(verbose > 1) fprintf(stderr, "Processed %lld tokens.", i);
+    if (verbose > 1) fprintf(stderr, "Processed %lld tokens.", i);
     sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-    while(fscanf(fid, format, str) != EOF) { // Insert all tokens into hashtable
+    while (fscanf(fid, format, str) != EOF) { // Insert all tokens into hashtable
         hashinsert(vocab_hash, str);
-        if(((++i)%100000) == 0) if(verbose > 1) fprintf(stderr,"\033[11G%lld tokens.", i);
+        if (((++i)%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[11G%lld tokens.", i);
     }
-    if(verbose > 1) fprintf(stderr, "\033[0GProcessed %lld tokens.\n", i);
+    if (verbose > 1) fprintf(stderr, "\033[0GProcessed %lld tokens.\n", i);
     vocab = malloc(sizeof(VOCAB) * vocab_size);
-    for(i = 0; i < TSIZE; i++) { // Migrate vocab to array
+    for (i = 0; i < TSIZE; i++) { // Migrate vocab to array
         htmp = vocab_hash[i];
         while (htmp != NULL) {
             vocab[j].word = htmp->word;
             vocab[j].count = htmp->count;
             j++;
-            if(j>=vocab_size) {
+            if (j>=vocab_size) {
                 vocab_size += 2500;
                 vocab = (VOCAB *)realloc(vocab, sizeof(VOCAB) * vocab_size);
             }
             htmp = htmp->next;
         }
     }
-    if(verbose > 1) fprintf(stderr, "Counted %lld unique words.\n", j);
-    if(max_vocab > 0 && max_vocab < j)
+    if (verbose > 1) fprintf(stderr, "Counted %lld unique words.\n", j);
+    if (max_vocab > 0 && max_vocab < j)
         // If the vocabulary exceeds limit, first sort full vocab by frequency without alphabetical tie-breaks.
         // This results in pseudo-random ordering for words with same frequency, so that when truncated, the words span whole alphabet
         qsort(vocab, j, sizeof(VOCAB), CompareVocab);
     else max_vocab = j;
     qsort(vocab, max_vocab, sizeof(VOCAB), CompareVocabTie); //After (possibly) truncating, sort (possibly again), breaking ties alphabetically
     
-    for(i = 0; i < max_vocab; i++) {
-        if(vocab[i].count < min_count) { // If a minimum frequency cutoff exists, truncate vocabulary
-            if(verbose > 0) fprintf(stderr, "Truncating vocabulary at min count %lld.\n",min_count);
+    for (i = 0; i < max_vocab; i++) {
+        if (vocab[i].count < min_count) { // If a minimum frequency cutoff exists, truncate vocabulary
+            if (verbose > 0) fprintf(stderr, "Truncating vocabulary at min count %lld.\n",min_count);
             break;
         }
         printf("%s %lld\n",vocab[i].word,vocab[i].count);
     }
     
-    if(i == max_vocab && max_vocab < j) if(verbose > 0) fprintf(stderr, "Truncating vocabulary at size %lld.\n", max_vocab);
+    if (i == max_vocab && max_vocab < j) if (verbose > 0) fprintf(stderr, "Truncating vocabulary at size %lld.\n", max_vocab);
     fprintf(stderr, "Using vocabulary of size %lld.\n\n", i);
     return 0;
 }
@@ -174,7 +174,7 @@ int get_counts() {
 int find_arg(char *str, int argc, char **argv) {
     int i;
     for (i = 1; i < argc; i++) {
-        if(!scmp(str, argv[i])) {
+        if (!scmp(str, argv[i])) {
             if (i == argc - 1) {
                 printf("No argument given for %s\n", str);
                 exit(1);

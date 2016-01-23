@@ -55,7 +55,7 @@ char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
-    while(*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
+    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
     return(*s1 - *s2);
 }
 
@@ -90,9 +90,9 @@ void *glove_thread(void *vid) {
     fseeko(fin, (num_lines / num_threads * id) * (sizeof(CREC)), SEEK_SET); //Threads spaced roughly equally throughout file
     cost[id] = 0;
     
-    for(a = 0; a < lines_per_thread[id]; a++) {
+    for (a = 0; a < lines_per_thread[id]; a++) {
         fread(&cr, sizeof(CREC), 1, fin);
-        if(feof(fin)) break;
+        if (feof(fin)) break;
         
         /* Get location of words in W & gradsq */
         l1 = (cr.word1 - 1LL) * (vector_size + 1); // cr word indices start at 1
@@ -100,14 +100,14 @@ void *glove_thread(void *vid) {
         
         /* Calculate cost, save diff for gradients */
         diff = 0;
-        for(b = 0; b < vector_size; b++) diff += W[b + l1] * W[b + l2]; // dot product of word and context word vector
+        for (b = 0; b < vector_size; b++) diff += W[b + l1] * W[b + l2]; // dot product of word and context word vector
         diff += W[vector_size + l1] + W[vector_size + l2] - log(cr.val); // add separate bias for each word
         fdiff = (cr.val > x_max) ? diff : pow(cr.val / x_max, alpha) * diff; // multiply weighting function (f) with diff
         cost[id] += 0.5 * fdiff * diff; // weighted squared error
         
         /* Adaptive gradient updates */
         fdiff *= eta; // for ease in calculating gradient
-        for(b = 0; b < vector_size; b++) {
+        for (b = 0; b < vector_size; b++) {
             // learning rate times gradient for word vectors
             temp1 = fdiff * W[b + l2];
             temp2 = fdiff * W[b + l1];
@@ -138,53 +138,53 @@ int save_params() {
     char *word = malloc(sizeof(char) * MAX_STRING_LENGTH + 1);
     FILE *fid, *fout, *fgs;
     
-    if(use_binary > 0) { // Save parameters in binary file
+    if (use_binary > 0) { // Save parameters in binary file
         sprintf(output_file,"%s.bin",save_W_file);
         fout = fopen(output_file,"wb");
-        if(fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
-        for(a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
+        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
+        for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
         fclose(fout);
-        if(save_gradsq > 0) {
+        if (save_gradsq > 0) {
             sprintf(output_file_gsq,"%s.bin",save_gradsq_file);
             fgs = fopen(output_file_gsq,"wb");
-            if(fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
-            for(a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&gradsq[a], sizeof(real), 1,fgs);
+            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
+            for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&gradsq[a], sizeof(real), 1,fgs);
             fclose(fgs);
         }
     }
-    if(use_binary != 1) { // Save parameters in text file
+    if (use_binary != 1) { // Save parameters in text file
         sprintf(output_file,"%s.txt",save_W_file);
-        if(save_gradsq > 0) {
+        if (save_gradsq > 0) {
             sprintf(output_file_gsq,"%s.txt",save_gradsq_file);
             fgs = fopen(output_file_gsq,"wb");
-            if(fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
+            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
         }
         fout = fopen(output_file,"wb");
-        if(fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
+        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
         fid = fopen(vocab_file, "r");
         sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-        if(fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
-        for(a = 0; a < vocab_size; a++) {
-            if(fscanf(fid,format,word) == 0) return 1;
+        if (fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
+        for (a = 0; a < vocab_size; a++) {
+            if (fscanf(fid,format,word) == 0) return 1;
             // input vocab cannot contain special <unk> keyword
-            if(strcmp(word, "<unk>") == 0) return 1;
+            if (strcmp(word, "<unk>") == 0) return 1;
             fprintf(fout, "%s",word);
-            if(model == 0) { // Save all parameters (including bias)
-                for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
-                for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[(vocab_size + a) * (vector_size + 1) + b]);
+            if (model == 0) { // Save all parameters (including bias)
+                for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
+                for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[(vocab_size + a) * (vector_size + 1) + b]);
             }
-            if(model == 1) // Save only "word" vectors (without bias)
-                for(b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
-            if(model == 2) // Save "word + context word" vectors (without bias)
-                for(b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b] + W[(vocab_size + a) * (vector_size + 1) + b]);
+            if (model == 1) // Save only "word" vectors (without bias)
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
+            if (model == 2) // Save "word + context word" vectors (without bias)
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b] + W[(vocab_size + a) * (vector_size + 1) + b]);
             fprintf(fout,"\n");
-            if(save_gradsq > 0) { // Save gradsq
+            if (save_gradsq > 0) { // Save gradsq
                 fprintf(fgs, "%s",word);
-                for(b = 0; b < (vector_size + 1); b++) fprintf(fgs," %lf", gradsq[a * (vector_size + 1) + b]);
-                for(b = 0; b < (vector_size + 1); b++) fprintf(fgs," %lf", gradsq[(vocab_size + a) * (vector_size + 1) + b]);
+                for (b = 0; b < (vector_size + 1); b++) fprintf(fgs," %lf", gradsq[a * (vector_size + 1) + b]);
+                for (b = 0; b < (vector_size + 1); b++) fprintf(fgs," %lf", gradsq[(vocab_size + a) * (vector_size + 1) + b]);
                 fprintf(fgs,"\n");
             }
-            if(fscanf(fid,format,word) == 0) return 1; // Eat irrelevant frequency entry
+            if (fscanf(fid,format,word) == 0) return 1; // Eat irrelevant frequency entry
         }
 
         if (use_unk_vec) {
@@ -194,22 +194,22 @@ int save_params() {
 
             int num_rare_words = vocab_size < 100 ? vocab_size : 100;
 
-            for(a = vocab_size - num_rare_words; a < vocab_size; a++) {
-                for(b = 0; b < (vector_size + 1); b++) {
+            for (a = vocab_size - num_rare_words; a < vocab_size; a++) {
+                for (b = 0; b < (vector_size + 1); b++) {
                     unk_vec[b] += W[a * (vector_size + 1) + b] / num_rare_words;
                     unk_context[b] += W[(vocab_size + a) * (vector_size + 1) + b] / num_rare_words;
                 }
             }
 
             fprintf(fout, "%s",word);
-            if(model == 0) { // Save all parameters (including bias)
-                for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", unk_vec[b]);
-                for(b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", unk_context[b]);
+            if (model == 0) { // Save all parameters (including bias)
+                for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", unk_vec[b]);
+                for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", unk_context[b]);
             }
-            if(model == 1) // Save only "word" vectors (without bias)
-                for(b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b]);
-            if(model == 2) // Save "word + context word" vectors (without bias)
-                for(b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b] + unk_context[b]);
+            if (model == 1) // Save only "word" vectors (without bias)
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b]);
+            if (model == 2) // Save "word + context word" vectors (without bias)
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b] + unk_context[b]);
             fprintf(fout,"\n");
 
             free(unk_vec);
@@ -218,7 +218,7 @@ int save_params() {
 
         fclose(fid);
         fclose(fout);
-        if(save_gradsq > 0) fclose(fgs);
+        if (save_gradsq > 0) fclose(fgs);
     }
     return 0;
 }
@@ -232,24 +232,24 @@ int train_glove() {
     fprintf(stderr, "TRAINING MODEL\n");
     
     fin = fopen(input_file, "rb");
-    if(fin == NULL) {fprintf(stderr,"Unable to open cooccurrence file %s.\n",input_file); return 1;}
+    if (fin == NULL) {fprintf(stderr,"Unable to open cooccurrence file %s.\n",input_file); return 1;}
     fseeko(fin, 0, SEEK_END);
     file_size = ftello(fin);
     num_lines = file_size/(sizeof(CREC)); // Assuming the file isn't corrupt and consists only of CREC's
     fclose(fin);
     fprintf(stderr,"Read %lld lines.\n", num_lines);
-    if(verbose > 1) fprintf(stderr,"Initializing parameters...");
+    if (verbose > 1) fprintf(stderr,"Initializing parameters...");
     initialize_parameters();
-    if(verbose > 1) fprintf(stderr,"done.\n");
-    if(verbose > 0) fprintf(stderr,"vector size: %d\n", vector_size);
-    if(verbose > 0) fprintf(stderr,"vocab size: %lld\n", vocab_size);
-    if(verbose > 0) fprintf(stderr,"x_max: %lf\n", x_max);
-    if(verbose > 0) fprintf(stderr,"alpha: %lf\n", alpha);
+    if (verbose > 1) fprintf(stderr,"done.\n");
+    if (verbose > 0) fprintf(stderr,"vector size: %d\n", vector_size);
+    if (verbose > 0) fprintf(stderr,"vocab size: %lld\n", vocab_size);
+    if (verbose > 0) fprintf(stderr,"x_max: %lf\n", x_max);
+    if (verbose > 0) fprintf(stderr,"alpha: %lf\n", alpha);
     pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
     lines_per_thread = (long long *) malloc(num_threads * sizeof(long long));
     
     // Lock-free asynchronous SGD
-    for(b = 0; b < num_iter; b++) {
+    for (b = 0; b < num_iter; b++) {
         total_cost = 0;
         for (a = 0; a < num_threads - 1; a++) lines_per_thread[a] = num_lines / num_threads;
         lines_per_thread[a] = num_lines / num_threads + num_lines % num_threads;
@@ -264,7 +264,7 @@ int train_glove() {
 int find_arg(char *str, int argc, char **argv) {
     int i;
     for (i = 1; i < argc; i++) {
-        if(!scmp(str, argv[i])) {
+        if (!scmp(str, argv[i])) {
             if (i == argc - 1) {
                 printf("No argument given for %s\n", str);
                 exit(1);
@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-eta", argc, argv)) > 0) eta = atof(argv[i + 1]);
     if ((i = find_arg((char *)"-binary", argc, argv)) > 0) use_binary = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-model", argc, argv)) > 0) model = atoi(argv[i + 1]);
-    if(model != 0 && model != 1) model = 2;
+    if (model != 0 && model != 1) model = 2;
     if ((i = find_arg((char *)"-save-gradsq", argc, argv)) > 0) save_gradsq = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-vocab-file", argc, argv)) > 0) strcpy(vocab_file, argv[i + 1]);
     else strcpy(vocab_file, (char *)"vocab.txt");
@@ -344,13 +344,13 @@ int main(int argc, char **argv) {
         strcpy(save_gradsq_file, argv[i + 1]);
         save_gradsq = 1;
     }
-    else if(save_gradsq > 0) strcpy(save_gradsq_file, (char *)"gradsq");
+    else if (save_gradsq > 0) strcpy(save_gradsq_file, (char *)"gradsq");
     if ((i = find_arg((char *)"-input-file", argc, argv)) > 0) strcpy(input_file, argv[i + 1]);
     else strcpy(input_file, (char *)"cooccurrence.shuf.bin");
     
     vocab_size = 0;
     fid = fopen(vocab_file, "r");
-    if(fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); return 1;}
+    if (fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); return 1;}
     while ((i = getc(fid)) != EOF) if (i == '\n') vocab_size++; // Count number of entries in vocab_file
     fclose(fid);
     
