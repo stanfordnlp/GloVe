@@ -62,7 +62,7 @@ char *vocab_file, *file_head;
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
-    while(*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
+    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
     return(*s1 - *s2);
 }
 
@@ -73,7 +73,7 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
     char c;
     unsigned int h;
     h = seed;
-    for(; (c =* word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
+    for (; (c =* word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
     return((unsigned int)((h&0x7fffffff) % tsize));
 }
 
@@ -82,7 +82,7 @@ HASHREC ** inithashtable() {
     int	i;
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
-    for(i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
+    for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
     return(ht);
 }
 
@@ -90,8 +90,8 @@ HASHREC ** inithashtable() {
 HASHREC *hashsearch(HASHREC **ht, char *w) {
     HASHREC	*htmp, *hprv;
     unsigned int hval = HASHFN(w, TSIZE, SEED);
-    for(hprv = NULL, htmp=ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
-    if( htmp != NULL && hprv!=NULL ) { // move to front on access
+    for (hprv = NULL, htmp=ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
+    if ( htmp != NULL && hprv!=NULL ) { // move to front on access
         hprv->next = htmp->next;
         htmp->next = ht[hval];
         ht[hval] = htmp;
@@ -103,14 +103,14 @@ HASHREC *hashsearch(HASHREC **ht, char *w) {
 void hashinsert(HASHREC **ht, char *w, long long id) {
     HASHREC	*htmp, *hprv;
     unsigned int hval = HASHFN(w, TSIZE, SEED);
-    for(hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
-    if(htmp == NULL) {
+    for (hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
+    if (htmp == NULL) {
         htmp = (HASHREC *) malloc(sizeof(HASHREC));
         htmp->word = (char *) malloc(strlen(w) + 1);
         strcpy(htmp->word, w);
         htmp->id = id;
         htmp->next = NULL;
-        if(hprv == NULL) ht[hval] = htmp;
+        if (hprv == NULL) ht[hval] = htmp;
         else hprv->next = htmp;
     }
     else fprintf(stderr, "Error, duplicate entry located: %s.\n",htmp->word);
@@ -120,11 +120,11 @@ void hashinsert(HASHREC **ht, char *w, long long id) {
 /* Read word from input stream */
 int get_word(char *word, FILE *fin) {
     int i = 0, ch;
-    while(!feof(fin)) {
+    while (!feof(fin)) {
         ch = fgetc(fin);
-        if(ch == 13) continue;
-        if((ch == ' ') || (ch == '\t') || (ch == '\n')) {
-            if(i > 0) {
+        if (ch == 13) continue;
+        if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
+            if (i > 0) {
                 if (ch == '\n') ungetc(ch, fin);
                 break;
             }
@@ -132,7 +132,7 @@ int get_word(char *word, FILE *fin) {
             else continue;
         }
         word[i++] = ch;
-        if(i >= MAX_STRING_LENGTH - 1) i--;   // truncate words that exceed max length
+        if (i >= MAX_STRING_LENGTH - 1) i--;   // truncate words that exceed max length
     }
     word[i] = 0;
     return 0;
@@ -143,8 +143,8 @@ int write_chunk(CREC *cr, long long length, FILE *fout) {
     long long a = 0;
     CREC old = cr[a];
     
-    for(a = 1; a < length; a++) {
-        if(cr[a].word1 == old.word1 && cr[a].word2 == old.word2) {
+    for (a = 1; a < length; a++) {
+        if (cr[a].word1 == old.word1 && cr[a].word2 == old.word2) {
             old.val += cr[a].val;
             continue;
         }
@@ -158,7 +158,7 @@ int write_chunk(CREC *cr, long long length, FILE *fout) {
 /* Check if two cooccurrence records are for the same two words, used for qsort */
 int compare_crec(const void *a, const void *b) {
     int c;
-    if( (c = ((CREC *) a)->word1 - ((CREC *) b)->word1) != 0) return c;
+    if ( (c = ((CREC *) a)->word1 - ((CREC *) b)->word1) != 0) return c;
     else return (((CREC *) a)->word2 - ((CREC *) b)->word2);
     
 }
@@ -166,7 +166,7 @@ int compare_crec(const void *a, const void *b) {
 /* Check if two cooccurrence records are for the same two words */
 int compare_crecid(CRECID a, CRECID b) {
     int c;
-    if( (c = a.word1 - b.word1) != 0) return c;
+    if ( (c = a.word1 - b.word1) != 0) return c;
     else return a.word2 - b.word2;
 }
 
@@ -181,8 +181,8 @@ void swap_entry(CRECID *pq, int i, int j) {
 void insert(CRECID *pq, CRECID new, int size) {
     int j = size - 1, p;
     pq[j] = new;
-    while( (p=(j-1)/2) >= 0 ) {
-        if(compare_crecid(pq[p],pq[j]) > 0) {swap_entry(pq,p,j); j = p;}
+    while ( (p=(j-1)/2) >= 0 ) {
+        if (compare_crecid(pq[p],pq[j]) > 0) {swap_entry(pq,p,j); j = p;}
         else break;
     }
 }
@@ -191,18 +191,18 @@ void insert(CRECID *pq, CRECID new, int size) {
 void delete(CRECID *pq, int size) {
     int j, p = 0;
     pq[p] = pq[size - 1];
-    while( (j = 2*p+1) < size - 1 ) {
-        if(j == size - 2) {
-            if(compare_crecid(pq[p],pq[j]) > 0) swap_entry(pq,p,j);
+    while ( (j = 2*p+1) < size - 1 ) {
+        if (j == size - 2) {
+            if (compare_crecid(pq[p],pq[j]) > 0) swap_entry(pq,p,j);
             return;
         }
         else {
-            if(compare_crecid(pq[j], pq[j+1]) < 0) {
-                if(compare_crecid(pq[p],pq[j]) > 0) {swap_entry(pq,p,j); p = j;}
+            if (compare_crecid(pq[j], pq[j+1]) < 0) {
+                if (compare_crecid(pq[p],pq[j]) > 0) {swap_entry(pq,p,j); p = j;}
                 else return;
             }
             else {
-                if(compare_crecid(pq[p],pq[j+1]) > 0) {swap_entry(pq,p,j+1); p = j + 1;}
+                if (compare_crecid(pq[p],pq[j+1]) > 0) {swap_entry(pq,p,j+1); p = j + 1;}
                 else return;
             }
         }
@@ -211,7 +211,7 @@ void delete(CRECID *pq, int size) {
 
 /* Write top node of priority queue to file, accumulating duplicate entries */
 int merge_write(CRECID new, CRECID *old, FILE *fout) {
-    if(new.word1 == old->word1 && new.word2 == old->word2) {
+    if (new.word1 == old->word1 && new.word2 == old->word2) {
         old->val += new.val;
         return 0; // Indicates duplicate entry
     }
@@ -230,13 +230,13 @@ int merge_files(int num) {
     fid = malloc(sizeof(FILE) * num);
     pq = malloc(sizeof(CRECID) * num);
     fout = stdout;
-    if(verbose > 1) fprintf(stderr, "Merging cooccurrence files: processed 0 lines.");
+    if (verbose > 1) fprintf(stderr, "Merging cooccurrence files: processed 0 lines.");
     
     /* Open all files and add first entry of each to priority queue */
-    for(i = 0; i < num; i++) {
+    for (i = 0; i < num; i++) {
         sprintf(filename,"%s_%04d.bin",file_head,i);
         fid[i] = fopen(filename,"rb");
-        if(fid[i] == NULL) {fprintf(stderr, "Unable to open file %s.\n",filename); return 1;}
+        if (fid[i] == NULL) {fprintf(stderr, "Unable to open file %s.\n",filename); return 1;}
         fread(&new, sizeof(CREC), 1, fid[i]);
         new.id = i;
         insert(pq,new,i+1);
@@ -248,20 +248,20 @@ int merge_files(int num) {
     i = pq[0].id;
     delete(pq, size);
     fread(&new, sizeof(CREC), 1, fid[i]);
-    if(feof(fid[i])) size--;
+    if (feof(fid[i])) size--;
     else {
         new.id = i;
         insert(pq, new, size);
     }
     
     /* Repeatedly pop top node and fill priority queue until files have reached EOF */
-    while(size > 0) {
+    while (size > 0) {
         counter += merge_write(pq[0], &old, fout); // Only count the lines written to file, not duplicates
-        if((counter%100000) == 0) if(verbose > 1) fprintf(stderr,"\033[39G%lld lines.",counter);
+        if ((counter%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[39G%lld lines.",counter);
         i = pq[0].id;
         delete(pq, size);
         fread(&new, sizeof(CREC), 1, fid[i]);
-        if(feof(fid[i])) size--;
+        if (feof(fid[i])) size--;
         else {
             new.id = i;
             insert(pq, new, size);
@@ -269,7 +269,7 @@ int merge_files(int num) {
     }
     fwrite(&old, sizeof(CREC), 1, fout);
     fprintf(stderr,"\033[0GMerging cooccurrence files: processed %lld lines.\n",++counter);
-    for(i=0;i<num;i++) {
+    for (i=0;i<num;i++) {
         sprintf(filename,"%s_%04d.bin",file_head,i);
         remove(filename);
     }
@@ -289,22 +289,22 @@ int get_cooccurrence() {
     history = malloc(sizeof(long long) * window_size);
     
     fprintf(stderr, "COUNTING COOCCURRENCES\n");
-    if(verbose > 0) {
+    if (verbose > 0) {
         fprintf(stderr, "window size: %d\n", window_size);
-        if(symmetric == 0) fprintf(stderr, "context: asymmetric\n");
+        if (symmetric == 0) fprintf(stderr, "context: asymmetric\n");
         else fprintf(stderr, "context: symmetric\n");
     }
-    if(verbose > 1) fprintf(stderr, "max product: %lld\n", max_product);
-    if(verbose > 1) fprintf(stderr, "overflow length: %lld\n", overflow_length);
+    if (verbose > 1) fprintf(stderr, "max product: %lld\n", max_product);
+    if (verbose > 1) fprintf(stderr, "overflow length: %lld\n", overflow_length);
     sprintf(format,"%%%ds %%lld", MAX_STRING_LENGTH); // Format to read from vocab file, which has (irrelevant) frequency data
-    if(verbose > 1) fprintf(stderr, "Reading vocab from file \"%s\"...", vocab_file);
+    if (verbose > 1) fprintf(stderr, "Reading vocab from file \"%s\"...", vocab_file);
     fid = fopen(vocab_file,"r");
-    if(fid == NULL) {fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); return 1;}
-    while(fscanf(fid, format, str, &id) != EOF) hashinsert(vocab_hash, str, ++j); // Here id is not used: inserting vocab words into hash table with their frequency rank, j
+    if (fid == NULL) {fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); return 1;}
+    while (fscanf(fid, format, str, &id) != EOF) hashinsert(vocab_hash, str, ++j); // Here id is not used: inserting vocab words into hash table with their frequency rank, j
     fclose(fid);
     vocab_size = j;
     j = 0;
-    if(verbose > 1) fprintf(stderr, "loaded %lld words.\nBuilding lookup table...", vocab_size);
+    if (verbose > 1) fprintf(stderr, "loaded %lld words.\nBuilding lookup table...", vocab_size);
     
     /* Build auxiliary lookup table used to index into bigram_table */
     lookup = (long long *)calloc( vocab_size + 1, sizeof(long long) );
@@ -313,11 +313,11 @@ int get_cooccurrence() {
         return 1;
     }
     lookup[0] = 1;
-    for(a = 1; a <= vocab_size; a++) {
-        if((lookup[a] = max_product / a) < vocab_size) lookup[a] += lookup[a-1];
+    for (a = 1; a <= vocab_size; a++) {
+        if ((lookup[a] = max_product / a) < vocab_size) lookup[a] += lookup[a-1];
         else lookup[a] = lookup[a-1] + vocab_size;
     }
-    if(verbose > 1) fprintf(stderr, "table contains %lld elements.\n",lookup[a-1]);
+    if (verbose > 1) fprintf(stderr, "table contains %lld elements.\n",lookup[a-1]);
     
     /* Allocate memory for full array which will store all cooccurrence counts for words whose product of frequency ranks is less than max_product */
     bigram_table = (real *)calloc( lookup[a-1] , sizeof(real) );
@@ -330,11 +330,11 @@ int get_cooccurrence() {
     sprintf(format,"%%%ds",MAX_STRING_LENGTH);
     sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
     foverflow = fopen(filename,"w");
-    if(verbose > 1) fprintf(stderr,"Processing token: 0");
+    if (verbose > 1) fprintf(stderr,"Processing token: 0");
     
     /* For each token in input stream, calculate a weighted cooccurrence sum within window_size */
     while (1) {
-        if(ind >= overflow_length - window_size) { // If overflow buffer is (almost) full, sort it and write it to temporary file
+        if (ind >= overflow_length - window_size) { // If overflow buffer is (almost) full, sort it and write it to temporary file
             qsort(cr, ind, sizeof(CREC), compare_crec);
             write_chunk(cr,ind,foverflow);
             fclose(foverflow);
@@ -344,25 +344,25 @@ int get_cooccurrence() {
             ind = 0;
         }
         flag = get_word(str, fid);
-        if(feof(fid)) break;
-        if(flag == 1) {j = 0; continue;} // Newline, reset line index (j)
+        if (feof(fid)) break;
+        if (flag == 1) {j = 0; continue;} // Newline, reset line index (j)
         counter++;
-        if((counter%100000) == 0) if(verbose > 1) fprintf(stderr,"\033[19G%lld",counter);
+        if ((counter%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[19G%lld",counter);
         htmp = hashsearch(vocab_hash, str);
         if (htmp == NULL) continue; // Skip out-of-vocabulary words
         w2 = htmp->id; // Target word (frequency rank)
-        for(k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
+        for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
             w1 = history[k % window_size]; // Context word (frequency rank)
             if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
                 bigram_table[lookup[w1-1] + w2 - 2] += 1.0/((real)(j-k)); // Weight by inverse of distance between words
-                if(symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += 1.0/((real)(j-k)); // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
+                if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += 1.0/((real)(j-k)); // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
             }
             else { // Product is too big, data is likely to be sparse. Store these entries in a temporary buffer to be sorted, merged (accumulated), and written to file when it gets full.
                 cr[ind].word1 = w1;
                 cr[ind].word2 = w2;
                 cr[ind].val = 1.0/((real)(j-k));
                 ind++; // Keep track of how full temporary buffer is
-                if(symmetric > 0) { // Symmetric context
+                if (symmetric > 0) { // Symmetric context
                     cr[ind].word1 = w2;
                     cr[ind].word2 = w1;
                     cr[ind].val = 1.0/((real)(j-k));
@@ -375,19 +375,19 @@ int get_cooccurrence() {
     }
     
     /* Write out temp buffer for the final time (it may not be full) */
-    if(verbose > 1) fprintf(stderr,"\033[0GProcessed %lld tokens.\n",counter);
+    if (verbose > 1) fprintf(stderr,"\033[0GProcessed %lld tokens.\n",counter);
     qsort(cr, ind, sizeof(CREC), compare_crec);
     write_chunk(cr,ind,foverflow);
     sprintf(filename,"%s_0000.bin",file_head);
     
     /* Write out full bigram_table, skipping zeros */
-    if(verbose > 1) fprintf(stderr, "Writing cooccurrences to disk");
+    if (verbose > 1) fprintf(stderr, "Writing cooccurrences to disk");
     fid = fopen(filename,"w");
     j = 1e6;
-    for(x = 1; x <= vocab_size; x++) {
-        if( (long long) (0.75*log(vocab_size / x)) < j) {j = (long long) (0.75*log(vocab_size / x)); if(verbose > 1) fprintf(stderr,".");} // log's to make it look (sort of) pretty
-        for(y = 1; y <= (lookup[x] - lookup[x-1]); y++) {
-            if((r = bigram_table[lookup[x-1] - 2 + y]) != 0) {
+    for (x = 1; x <= vocab_size; x++) {
+        if ( (long long) (0.75*log(vocab_size / x)) < j) {j = (long long) (0.75*log(vocab_size / x)); if (verbose > 1) fprintf(stderr,".");} // log's to make it look (sort of) pretty
+        for (y = 1; y <= (lookup[x] - lookup[x-1]); y++) {
+            if ((r = bigram_table[lookup[x-1] - 2 + y]) != 0) {
                 fwrite(&x, sizeof(int), 1, fid);
                 fwrite(&y, sizeof(int), 1, fid);
                 fwrite(&r, sizeof(real), 1, fid);
@@ -395,7 +395,7 @@ int get_cooccurrence() {
         }
     }
     
-    if(verbose > 1) fprintf(stderr,"%d files in total.\n",fidcounter + 1);
+    if (verbose > 1) fprintf(stderr,"%d files in total.\n",fidcounter + 1);
     fclose(fid);
     fclose(foverflow);
     free(cr);
@@ -408,7 +408,7 @@ int get_cooccurrence() {
 int find_arg(char *str, int argc, char **argv) {
     int i;
     for (i = 1; i < argc; i++) {
-        if(!scmp(str, argv[i])) {
+        if (!scmp(str, argv[i])) {
             if (i == argc - 1) {
                 printf("No argument given for %s\n", str);
                 exit(1);
@@ -463,7 +463,7 @@ int main(int argc, char **argv) {
     /* The memory_limit determines a limit on the number of elements in bigram_table and the overflow buffer */
     /* Estimate the maximum value that max_product can take so that this limit is still satisfied */
     rlimit = 0.85 * (real)memory_limit * 1073741824/(sizeof(CREC));
-    while(fabs(rlimit - n * (log(n) + 0.1544313298)) > 1e-3) n = rlimit / (log(n) + 0.1544313298);
+    while (fabs(rlimit - n * (log(n) + 0.1544313298)) > 1e-3) n = rlimit / (log(n) + 0.1544313298);
     max_product = (long long) n;
     overflow_length = (long long) rlimit/6; // 0.85 + 1/6 ~= 1
     
