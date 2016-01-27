@@ -82,7 +82,7 @@ void initialize_parameters() {
 /* Train the GloVe model */
 void *glove_thread(void *vid) {
     long long a, b ,l1, l2;
-    long long id = (long long) vid;
+    long long id = *(long long*)vid;
     CREC cr;
     real diff, fdiff, temp1, temp2;
     FILE *fin;
@@ -253,7 +253,9 @@ int train_glove() {
         total_cost = 0;
         for (a = 0; a < num_threads - 1; a++) lines_per_thread[a] = num_lines / num_threads;
         lines_per_thread[a] = num_lines / num_threads + num_lines % num_threads;
-        for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, glove_thread, (void *)a);
+        long long *thread_ids = (long long*)malloc(sizeof(long long) * num_threads);
+        for (a = 0; a < num_threads; a++) thread_ids[a] = a;
+        for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, glove_thread, (void *)&thread_ids[a]);
         for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
         for (a = 0; a < num_threads; a++) total_cost += cost[a];
         fprintf(stderr,"iter: %03d, cost: %lf\n", b+1, total_cost/num_lines);
