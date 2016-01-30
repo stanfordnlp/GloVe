@@ -26,7 +26,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
+#ifndef _MSC_VER
+#	include <pthread.h>
+typedef pthread_t thread_type;
+#else
+#	include <windows.h>
+typedef HANDLE thread_type;
+#define fseeko _fseeki64
+#define ftello _ftelli64
+#endif
 
 #define _FILE_OFFSET_BITS 64
 #define MAX_STRING_LENGTH 1000
@@ -64,12 +72,12 @@ void initialize_parameters() {
 	vector_size++; // Temporarily increment to allocate space for bias
     
 	/* Allocate space for word vectors and context word vectors, and correspodning gradsq */
-	a = posix_memalign((void **)&W, 128, 2 * vocab_size * (vector_size + 1) * sizeof(real)); // Might perform better than malloc
+	W = (real*)malloc(2 * vocab_size * (vector_size + 1) * sizeof(real));
     if (W == NULL) {
         fprintf(stderr, "Error allocating memory for W\n");
         exit(1);
     }
-    a = posix_memalign((void **)&gradsq, 128, 2 * vocab_size * (vector_size + 1) * sizeof(real)); // Might perform better than malloc
+    gradsq = (real*)malloc(2 * vocab_size * (vector_size + 1) * sizeof(real));
 	if (gradsq == NULL) {
         fprintf(stderr, "Error allocating memory for gradsq\n");
         exit(1);
@@ -127,7 +135,7 @@ void *glove_thread(void *vid) {
     }
     
     fclose(fin);
-    pthread_exit(NULL);
+    return NULL;
 }
 
 /* Save params to file */
@@ -245,7 +253,7 @@ int train_glove() {
     if (verbose > 0) fprintf(stderr,"vocab size: %lld\n", vocab_size);
     if (verbose > 0) fprintf(stderr,"x_max: %lf\n", x_max);
     if (verbose > 0) fprintf(stderr,"alpha: %lf\n", alpha);
-    pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
+    thread_type *pt = (thread_type *)malloc(num_threads * sizeof(thread_type));
     lines_per_thread = (long long *) malloc(num_threads * sizeof(long long));
     
     // Lock-free asynchronous SGD
@@ -255,8 +263,19 @@ int train_glove() {
         lines_per_thread[a] = num_lines / num_threads + num_lines % num_threads;
         long long *thread_ids = (long long*)malloc(sizeof(long long) * num_threads);
         for (a = 0; a < num_threads; a++) thread_ids[a] = a;
-        for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, glove_thread, (void *)&thread_ids[a]);
-        for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
+        for (a = 0; a < num_threads; a++)
+		{
+#ifndef _MSC_VER
+			pthread_create(&pt[a], NULL, glove_thread, (void *)&thread_ids[a]);
+#else
+			pt[a] = CreateThread(NULL, 0, glove_thread, &thread_ids[a], 0, NULL);
+#endif
+		}
+#ifndef _MSC_VER
+		for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
+#else
+		WaitForMultipleObjects(num_threads, pt, TRUE, INFINITE);
+#endif
         for (a = 0; a < num_threads; a++) total_cost += cost[a];
         fprintf(stderr,"iter: %03d, cost: %lf\n", b+1, total_cost/num_lines);
     }
