@@ -94,8 +94,8 @@ def evaluate_vectors(W, vocab, ivocab):
             correct_syn = correct_syn + sum(val)
 
         print("%s:" % filenames[i])
-        print('ACCURACY TOP1: %.2f%% (%d/%d)' %
-            (np.mean(val) * 100, np.sum(val), len(val)))
+        print('ACCURACY TOP %d: %.2f%% (%d/%d)' %
+            ((i + 1), np.mean(val) * 100, np.sum(val), len(val)))
 
     print('Questions seen/total: %.2f%% (%d/%d)' %
         (100 * count_tot / float(full_count), count_tot, full_count))
