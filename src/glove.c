@@ -93,6 +93,7 @@ void *glove_thread(void *vid) {
     for (a = 0; a < lines_per_thread[id]; a++) {
         fread(&cr, sizeof(CREC), 1, fin);
         if (feof(fin)) break;
+        if (cr.word1 < 1 || cr.word2 < 1) { continue; }
         
         /* Get location of words in W & gradsq */
         l1 = (cr.word1 - 1LL) * (vector_size + 1); // cr word indices start at 1
