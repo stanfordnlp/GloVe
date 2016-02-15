@@ -42,12 +42,14 @@ if [[ $? -eq 0 ]]
        $BUILDDIR/glove -save-file $SAVE_FILE -threads $NUM_THREADS -input-file $COOCCURRENCE_SHUF_FILE -x-max $X_MAX -iter $MAX_ITER -vector-size $VECTOR_SIZE -binary $BINARY -vocab-file $VOCAB_FILE -verbose $VERBOSE
        if [[ $? -eq 0 ]]
        then
-           if [ "$1" = 'matlab' ]; then
-               matlab -nodisplay -nodesktop -nojvm -nosplash < ./eval/matlab/read_and_evaluate.m 1>&2 
-           elif [ "$1" = 'octave' ]; then
-               octave < ./eval/octave/read_and_evaluate_octave.m 1>&2 
-           else
-               python eval/python/evaluate.py
+           if [ "$CORPUS" = 'text8' ]; then
+               if [ "$1" = 'matlab' ]; then
+                   matlab -nodisplay -nodesktop -nojvm -nosplash < ./eval/matlab/read_and_evaluate.m 1>&2 
+               elif [ "$1" = 'octave' ]; then
+                   octave < ./eval/octave/read_and_evaluate_octave.m 1>&2
+               else
+                   python eval/python/evaluate.py
+               fi
            fi
        fi
     fi
