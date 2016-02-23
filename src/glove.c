@@ -85,6 +85,7 @@ void *glove_thread(void *vid) {
     long long id = *(long long*)vid;
     CREC cr;
     real diff, fdiff, temp1, temp2;
+    real update; // compute weight update and check for NaN, before applying gradient
     FILE *fin;
     fin = fopen(input_file, "rb");
     fseeko(fin, (num_lines / num_threads * id) * (sizeof(CREC)), SEEK_SET); //Threads spaced roughly equally throughout file
@@ -93,7 +94,6 @@ void *glove_thread(void *vid) {
     for (a = 0; a < lines_per_thread[id]; a++) {
         fread(&cr, sizeof(CREC), 1, fin);
         if (feof(fin)) break;
-        if (cr.word1 < 1 || cr.word2 < 1) { continue; }
         
         /* Get location of words in W & gradsq */
         l1 = (cr.word1 - 1LL) * (vector_size + 1); // cr word indices start at 1
@@ -104,6 +104,13 @@ void *glove_thread(void *vid) {
         for (b = 0; b < vector_size; b++) diff += W[b + l1] * W[b + l2]; // dot product of word and context word vector
         diff += W[vector_size + l1] + W[vector_size + l2] - log(cr.val); // add separate bias for each word
         fdiff = (cr.val > x_max) ? diff : pow(cr.val / x_max, alpha) * diff; // multiply weighting function (f) with diff
+
+        // It does not seem possible, but check for NaN and inf() in the diffs. If error, just continue without updates
+        if (isnan(diff) || isnan(fdiff) || isinf(diff) || isinf(fdiff)) {
+            fprintf(stderr,"Caught NaN in diff for kdiff for thread. Skipping update");
+            continue;
+        }
+
         cost[id] += 0.5 * fdiff * diff; // weighted squared error
         
         /* Adaptive gradient updates */
@@ -113,14 +120,46 @@ void *glove_thread(void *vid) {
             temp1 = fdiff * W[b + l2];
             temp2 = fdiff * W[b + l1];
             // adaptive updates
-            W[b + l1] -= temp1 / sqrt(gradsq[b + l1]);
-            W[b + l2] -= temp2 / sqrt(gradsq[b + l2]);
+            // NOTE: Check for NaN in weight updates, which could happen if dividing by a very small number
+
+            // W1
+            update = temp1 / sqrt(gradsq[b + l1]);
+            // For testing, can also fake a NaN once in a blue moon
+            // NOTE: Generating a rand() every step is very expensive.
+            //if (rand() % 10000000 == 0) {
+            //    update = NAN;
+            //}
+            if (!isnan(update) && !isinf(update))
+                W[b + l1] -= update;
+            else
+                fprintf(stderr,"\ncaught NaN in update W[b + l1] -=");
+            // W2
+            update = temp2 / sqrt(gradsq[b + l2]);
+            if (!isnan(update) && !isinf(update))
+                W[b + l2] -= update;
+            else
+                fprintf(stderr,"\ncaught NaN in update W[b + l2] -=");
+
+            // These should be fine, unless kdiff above is NaN, in which case check there
             gradsq[b + l1] += temp1 * temp1;
             gradsq[b + l2] += temp2 * temp2;
         }
         // updates for bias terms
-        W[vector_size + l1] -= fdiff / sqrt(gradsq[vector_size + l1]);
-        W[vector_size + l2] -= fdiff / sqrt(gradsq[vector_size + l2]);
+        // check for NaN or inf() here also.
+        // W1
+        update = fdiff / sqrt(gradsq[vector_size + l1]);
+        if (!isnan(update) && !isinf(update))
+            W[vector_size + l1] -= update;
+        else
+            fprintf(stderr,"\ncaught NaN in update W[vector_size + l1] -=");
+        // W2
+        update = fdiff / sqrt(gradsq[vector_size + l2]);
+        if (!isnan(update) && !isinf(update))
+            W[vector_size + l2] -= update;
+        else
+            fprintf(stderr,"\ncaught NaN in update W[vector_size + l2] -=");
+
+        // Finish by updating the gradients.
         fdiff *= fdiff;
         gradsq[vector_size + l1] += fdiff;
         gradsq[vector_size + l2] += fdiff;
