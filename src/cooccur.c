@@ -30,7 +30,7 @@
 #define SEED 1159241
 #define HASHFN bitwisehash
 
-static const int MAX_STRING_LENGTH = 1000;
+#define MAX_STRING_LENGTH 1000
 typedef double real;
 
 typedef struct cooccur_rec {
