@@ -49,8 +49,7 @@ int vector_size = 50; // Word vector size
 int save_gradsq = 0; // By default don't save squared gradient values
 int use_binary = 0; // 0: save as text files; 1: save as binary; 2: both. For binary, save both word and context word vectors.
 int model = 2; // For text file output only. 0: concatenate word and context vectors (and biases) i.e. save everything; 1: Just save word vectors (no bias); 2: Save (word + context word) vectors (no biases)
-int dump_every = 0; // Dump the model for every dump_every full passes. Do nothing if dump_every <= 0 (which is the default behavior).
-int show_time_stamp = 0; // 1: Show time Stamp at the end of every full pass. 0 (default): Do nothing.
+int checkpoint_every = 0; // checkpoint the model for every checkpoint_every iterations. Do nothing if checkpoint_every <= 0
 real eta = 0.05; // Initial learning rate
 real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremely sensitive to corpus, though may need adjustment for very small or very large corpora
 real *W, *gradsq, *cost;
@@ -170,7 +169,7 @@ void *glove_thread(void *vid) {
 int save_params(int nb_iter) {
     /*
      * nb_iter is the number of iteration (= a full pass through the cooccurrence matrix).
-     *   nb_iter > 0 => dumping the intermediate parameters, so nb_iter is in the filename of output file.
+     *   nb_iter > 0 => checkpointing the intermediate parameters, so nb_iter is in the filename of output file.
      *   else        => saving the final paramters, so nb_iter is ignored.
      */
 
@@ -287,10 +286,8 @@ int train_glove() {
     int b;
     FILE *fin;
     real total_cost = 0;
-    time_t start_epoch, current_epoch, diff_epoch;
 
     fprintf(stderr, "TRAINING MODEL\n");
-    start_epoch = time(NULL);
     
     fin = fopen(input_file, "rb");
     if (fin == NULL) {fprintf(stderr,"Unable to open cooccurrence file %s.\n",input_file); return 1;}
@@ -309,6 +306,9 @@ int train_glove() {
     pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
     lines_per_thread = (long long *) malloc(num_threads * sizeof(long long));
     
+    time_t rawtime;
+    struct tm *info;
+    char time_buffer[80];
     // Lock-free asynchronous SGD
     for (b = 0; b < num_iter; b++) {
         total_cost = 0;
@@ -320,22 +320,20 @@ int train_glove() {
         for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
         for (a = 0; a < num_threads; a++) total_cost += cost[a];
         free(thread_ids);
-        fprintf(stderr,"iter: %03d, cost: %lf\n", b+1, total_cost/num_lines);
 
-        if (dump_every > 0 && (b + 1) % dump_every == 0) {
-            fprintf(stderr,"    dumping itermediate parameters for iter %03d (instructed to dump every %d iterations)...",
-                    b+1, dump_every);
+        time(&rawtime);
+        info = localtime(&rawtime);
+        strftime(time_buffer,80,"%x - %I:%M.%S%p", info);
+        fprintf(stderr, "%s, iter: %03d, cost: %lf\n", time_buffer,  b+1, total_cost/num_lines);
+
+        if (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0) {
+            fprintf(stderr,"    saving itermediate parameters for iter %03d...", b+1);
             save_params_return_code = save_params(b+1);
             if (save_params_return_code != 0)
                 return save_params_return_code;
             fprintf(stderr,"done.\n");
         }
 
-        current_epoch = time(NULL);
-        diff_epoch = current_epoch - start_epoch;
-        if (show_time_stamp != 0) {
-            fprintf(stderr, "    time stamp = start + %ju seconds\n", (uintmax_t)diff_epoch);
-        }
     }
     free(pt);
     free(lines_per_thread);
@@ -400,10 +398,8 @@ int main(int argc, char **argv) {
         printf("\t\tFilename, excluding extension, for squared gradient output; default gradsq\n");
         printf("\t-save-gradsq <int>\n");
         printf("\t\tSave accumulated squared gradients; default 0 (off); ignored if gradsq-file is specified\n");
-        printf("\t-dump-every <int>\n");
-        printf("\t\tDump the model for every such numbers of full passes of data; default 0 (off)\n");
-        printf("\t-show-time-stamp <int>\n");
-        printf("\t\tShow time stamp at the end of every full pass; default 0 (off)\n");
+        printf("\t-checkpoint-every <int>\n");
+        printf("\t\tCheckpoint a  model every <int> iterations; default 0 (off)\n");
         printf("\nExample usage:\n");
         printf("./glove -input-file cooccurrence.shuf.bin -vocab-file vocab.txt -save-file vectors -gradsq-file gradsq -verbose 2 -vector-size 100 -threads 16 -alpha 0.75 -x-max 100.0 -eta 0.05 -binary 2 -model 2\n\n");
         result = 0;
@@ -431,8 +427,7 @@ int main(int argc, char **argv) {
         else if (save_gradsq > 0) strcpy(save_gradsq_file, (char *)"gradsq");
         if ((i = find_arg((char *)"-input-file", argc, argv)) > 0) strcpy(input_file, argv[i + 1]);
         else strcpy(input_file, (char *)"cooccurrence.shuf.bin");
-        if ((i = find_arg((char *)"-dump-every", argc, argv)) > 0) dump_every = atoi(argv[i + 1]);
-        if ((i = find_arg((char *)"-show-time-stamp", argc, argv)) > 0) show_time_stamp = atoi(argv[i + 1]);
+        if ((i = find_arg((char *)"-checkpoint-every", argc, argv)) > 0) checkpoint_every = atoi(argv[i + 1]);
         
         vocab_size = 0;
         fid = fopen(vocab_file, "r");
