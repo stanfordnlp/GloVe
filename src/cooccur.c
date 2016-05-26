@@ -140,6 +140,8 @@ int get_word(char *word, FILE *fin) {
 
 /* Write sorted chunk of cooccurrence records to file, accumulating duplicate entries */
 int write_chunk(CREC *cr, long long length, FILE *fout) {
+    if (length == 0) return 0;
+
     long long a = 0;
     CREC old = cr[a];
     
