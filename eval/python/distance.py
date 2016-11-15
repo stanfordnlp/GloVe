@@ -39,7 +39,7 @@ def distance(W, vocab, ivocab, input_term):
         if term in vocab:
             print('Word: %s  Position in vocabulary: %i' % (term, vocab[term]))
             if idx == 0:
-                vec_result = W[vocab[term], :] 
+                vec_result = np.copy(W[vocab[term], :])
             else:
                 vec_result += W[vocab[term], :] 
         else:
