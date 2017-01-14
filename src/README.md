@@ -4,7 +4,7 @@ To train your own GloVe vectors, first you'll need to prepare your corpus as a s
 
 This four main tools in this package are: 
 #### 1) vocab_count
-Constructs unigram counts from a corpus, and optionally thresholds the resulting vocabulary based on total vocabulary size or minimum frequency count. This file should already consist of whitespace-separated tokens. Use something like the [Stanford Tokenizer](http://nlp.stanford.edu/software/tokenizer.shtml) first on raw text.
+This tool requires an input corpus that should already consist of whitespace-separated tokens. Use something like the [Stanford Tokenizer](http://nlp.stanford.edu/software/tokenizer.shtml) first on raw text. From the corpus, it constructs unigram counts from a corpus, and optionally thresholds the resulting vocabulary based on total vocabulary size or minimum frequency count.
 #### 2) cooccur
 Constructs word-word cooccurrence statistics from a corpus. The user should supply a vocabulary file, as produced by `vocab_count`, and may specify a variety of parameters, as described by running `./build/cooccur`.
 #### 3) shuffle
