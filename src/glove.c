@@ -29,6 +29,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <time.h>
+#include <signal.h>
 
 #define _FILE_OFFSET_BITS 64
 #define MAX_STRING_LENGTH 1000
@@ -55,6 +56,14 @@ real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremel
 real *W, *gradsq, *cost;
 long long num_lines, *lines_per_thread, vocab_size;
 char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
+
+volatile sig_atomic_t checkpoint_after_curr_iter = 0;
+
+void sig_handler(int signo) {
+    if (signo == SIGUSR1) {
+      checkpoint_after_curr_iter = 1;
+    }
+}
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -326,11 +335,12 @@ int train_glove() {
         strftime(time_buffer,80,"%x - %I:%M.%S%p", info);
         fprintf(stderr, "%s, iter: %03d, cost: %lf\n", time_buffer,  b+1, total_cost/num_lines);
 
-        if (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0) {
+        if (checkpoint_after_curr_iter || (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0)) {
             fprintf(stderr,"    saving itermediate parameters for iter %03d...", b+1);
             save_params_return_code = save_params(b+1);
             if (save_params_return_code != 0)
                 return save_params_return_code;
+            checkpoint_after_curr_iter = 0;
             fprintf(stderr,"done.\n");
         }
 
@@ -362,6 +372,11 @@ int main(int argc, char **argv) {
     save_W_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     save_gradsq_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     int result = 0;
+    
+    if (signal(SIGUSR1, sig_handler) == SIG_ERR) {
+        printf("\nCannot catch SIGUSR1 signal\n");
+        return 1;
+    }
     
     if (argc == 1) {
         printf("GloVe: Global Vectors for Word Representation, v0.2\n");
