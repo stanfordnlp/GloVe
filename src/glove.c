@@ -59,12 +59,6 @@ char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
 
 volatile sig_atomic_t checkpoint_after_curr_iter = 0;
 
-void sig_handler(int signo) {
-    if (signo == SIGUSR1) {
-      checkpoint_after_curr_iter = 1;
-    }
-}
-
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
     while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
@@ -364,6 +358,36 @@ int find_arg(char *str, int argc, char **argv) {
     return -1;
 }
 
+void *sig_handler_thread(void *nothing) {
+    
+    sigset_t signals;
+    
+    sigemptyset(&signals);
+    sigaddset(&signals, SIGUSR1);
+    
+    for(;;) {
+        int signo;
+        if (0 == sigwait(&signals, &signo)) {
+            if (signo == SIGUSR1) {
+                fprintf(stderr, "    saving checkpoint after current iteration requested.\n");
+                checkpoint_after_curr_iter = 1;
+            }
+        } else {
+            fprintf(stderr, "Error while waiting for signal.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+int start_sig_handler_thread(pthread_t *sig_handler_pt) {
+  sigset_t sig_mask;
+  sigemptyset(&sig_mask);
+  sigaddset(&sig_mask, SIGUSR1);
+  sigprocmask(SIG_BLOCK, &sig_mask, NULL);
+
+  return pthread_create(sig_handler_pt, NULL, sig_handler_thread, NULL);
+}
+
 int main(int argc, char **argv) {
     int i;
     FILE *fid;
@@ -373,9 +397,10 @@ int main(int argc, char **argv) {
     save_gradsq_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     int result = 0;
     
-    if (signal(SIGUSR1, sig_handler) == SIG_ERR) {
-        printf("\nCannot catch SIGUSR1 signal\n");
-        return 1;
+    pthread_t sig_handler_pt;
+    if (start_sig_handler_thread(&sig_handler_pt)) {
+      fprintf(stderr, "Cannot create sig handler thread.\n");
+      exit(EXIT_FAILURE);
     }
     
     if (argc == 1) {
