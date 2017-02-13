@@ -383,7 +383,7 @@ int start_sig_handler_thread(pthread_t *sig_handler_pt) {
   sigset_t sig_mask;
   sigemptyset(&sig_mask);
   sigaddset(&sig_mask, SIGUSR1);
-  sigprocmask(SIG_BLOCK, &sig_mask, NULL);
+  pthread_sigmask(SIG_BLOCK, &sig_mask, NULL);
 
   return pthread_create(sig_handler_pt, NULL, sig_handler_thread, NULL);
 }
