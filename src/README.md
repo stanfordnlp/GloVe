@@ -8,6 +8,6 @@ This tool requires an input corpus that should already consist of whitespace-sep
 #### 2) cooccur
 Constructs word-word cooccurrence statistics from a corpus. The user should supply a vocabulary file, as produced by `vocab_count`, and may specify a variety of parameters, as described by running `./build/cooccur`.
 #### 3) shuffle
-Shuffles the binary file of cooccurrence statistics produced by `cooccur`. For large files, the file is automatically split into chunks, each of which is shuffled and stored on disk before being merged and shuffled togther. The user may specify a number of parameters, as described by running `./build/shuffle`.
+Shuffles the binary file of cooccurrence statistics produced by `cooccur`. For large files, the file is automatically split into chunks, each of which is shuffled and stored on disk before being merged and shuffled together. The user may specify a number of parameters, as described by running `./build/shuffle`.
 #### 4) glove
 Train the GloVe model on the specified cooccurrence data, which typically will be the output of the `shuffle` tool. The user should supply a vocabulary file, as given by `vocab_count`, and may specify a number of other parameters, which are described by running `./build/glove`.
