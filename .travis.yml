@@ -1,2 +1,2 @@
 language: c
-script: make && echo hello
+script: ./demo.sh
