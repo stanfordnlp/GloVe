@@ -4,4 +4,4 @@ sudo: required
 before_install:
   - echo 1
   - sudo apt-get install python2.7 python-numpy
-script: ./demo.sh
+script: python -c 'import numpy' && ./demo.sh
