@@ -1,2 +1,7 @@
-language: c
+language: python
+python:
+  - "2.7"
+# command to install dependencies
+before_install:
+  - sudo apt-get -qq install python-numpy python-scipy
 script: ./demo.sh
