@@ -1,5 +1,7 @@
 language: c
+dist: trusty
+sudo: required
 before_install:
-  #- sudo apt-get install python2.7 python-numpy
   - echo 1
+  - sudo apt-get install python2.7 python-numpy
 script: ./demo.sh
