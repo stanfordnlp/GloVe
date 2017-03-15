@@ -1,4 +1,4 @@
 language: c
 before_install:
-  - sudo apt-get -qq install python-numpy python-scipy
+  - sudo apt-get install python2.7 python-numpy
 script: ./demo.sh
