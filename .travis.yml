@@ -3,5 +3,5 @@ dist: trusty
 sudo: required
 before_install:
   - echo 1
-  - sudo apt-get install python2.7 python-numpy
-script: python -c 'import numpy' && ./demo.sh
+  - sudo apt-get install python2.7 python-numpy python-pip
+script: pip install numpy && python -c 'import numpy' && ./demo.sh
