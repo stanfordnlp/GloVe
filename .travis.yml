@@ -3,7 +3,4 @@ dist: trusty
 sudo: required
 before_install:
   - sudo apt-get install python2.7 python-numpy python-pip
-script:
-  - pip install numpy 
-  - ./demo.sh | tee results.txt
-  - [[ `cat results.txt  | grep Questions | grep 90 | wc -l` = "1" ]] && echo test-passed
+script: pip install numpy && ./demo.sh | tee results.txt && [[ `cat results.txt  | grep Questions | grep 90 | wc -l` = "1" ]] && echo test-passed
