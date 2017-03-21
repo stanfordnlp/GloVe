@@ -1,12 +1,15 @@
 ## GloVe: Global Vectors for Word Representation
 
-<em>frog</em> nearest neighbors | Litoria             |  Leptodactylidae | Rana | Eleutherodactylus
--------------------------|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|
-<li> frogs <li> toad <li> litoria <li> leptodactylidae <li> rana <li> lizard <li> eleutherodactylus | ![](http://nlp.stanford.edu/projects/glove/images/litoria.jpg)  |  ![](http://nlp.stanford.edu/projects/glove/images/leptodactylidae.jpg) |  ![](http://nlp.stanford.edu/projects/glove/images/rana.jpg) |  ![](http://nlp.stanford.edu/projects/glove/images/eleutherodactylus.jpg)
 
-man -> woman             |  city -> zip | comparative -> superlative
-:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|
-![](http://nlp.stanford.edu/projects/glove/images/man_woman_small.jpg)  |   ![](http://nlp.stanford.edu/projects/glove/images/city_zip_small.jpg) |  ![](http://nlp.stanford.edu/projects/glove/images/comparative_superlative_small.jpg)
+| nearest neighbors of <em>frog</em> | Litoria             |  Leptodactylidae | Rana | Eleutherodactylus |
+| --- | ------------------------------- | ------------------- | ---------------- | ------------------- |
+| Pictures | <img src="http://nlp.stanford.edu/projects/glove/images/litoria.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/leptodactylidae.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/rana.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/eleutherodactylus.jpg"></img> |
+
+| Comparisons | man -> woman             |  city -> zip | comparative -> superlative |
+| --- | ------------------------|-------------------------|-------------------------|
+| GloVe Geometry | <img src="http://nlp.stanford.edu/projects/glove/images/man_woman_small.jpg"></img>  | <img src="http://nlp.stanford.edu/projects/glove/images/city_zip_small.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/comparative_superlative_small.jpg"></img> |
+
+
 
 We provide an implementation of the GloVe model for learning word representations, and describe how to download web-dataset vectors or train your own. See the [project page](http://nlp.stanford.edu/projects/glove/) or the [paper](http://nlp.stanford.edu/pubs/glove.pdf) for more information on glove vectors.
 
