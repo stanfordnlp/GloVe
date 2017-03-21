@@ -9,8 +9,6 @@
 | --- | ------------------------|-------------------------|-------------------------|
 | GloVe Geometry | <img src="http://nlp.stanford.edu/projects/glove/images/man_woman_small.jpg"></img>  | <img src="http://nlp.stanford.edu/projects/glove/images/city_zip_small.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/comparative_superlative_small.jpg"></img> |
 
-
-
 We provide an implementation of the GloVe model for learning word representations, and describe how to download web-dataset vectors or train your own. See the [project page](http://nlp.stanford.edu/projects/glove/) or the [paper](http://nlp.stanford.edu/pubs/glove.pdf) for more information on glove vectors.
 
 ## Download pre-trained word vectors
@@ -25,6 +23,9 @@ The links below contain word vectors obtained from the respective corpora. If yo
 </div>
 
 ## Train word vectors on a new corpus
+
+<img src="https://travis-ci.org/stanfordnlp/GloVe.svg?branch=master"></img>
+
 If the web datasets above don't match the semantics of your end use case, you can train word vectors on your own corpus.
 
     $ git clone http://github.com/stanfordnlp/glove
