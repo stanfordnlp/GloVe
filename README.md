@@ -1,7 +1,7 @@
 ## GloVe: Global Vectors for Word Representation
 
 
-| nearest neighbors of <em>frog</em> | Litoria             |  Leptodactylidae | Rana | Eleutherodactylus |
+| nearest neighbors of <br/> <em>frog</em> | Litoria             |  Leptodactylidae | Rana | Eleutherodactylus |
 | --- | ------------------------------- | ------------------- | ---------------- | ------------------- |
 | Pictures | <img src="http://nlp.stanford.edu/projects/glove/images/litoria.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/leptodactylidae.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/rana.jpg"></img> | <img src="http://nlp.stanford.edu/projects/glove/images/eleutherodactylus.jpg"></img> |
 
