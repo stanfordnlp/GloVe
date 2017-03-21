@@ -63,20 +63,21 @@ int scmp( char *s1, char *s2 ) {
 }
 
 void initialize_parameters() {
-    long long a, b;
-    vector_size++; // Temporarily increment to allocate space for bias
-    /* Allocate space for word vectors and context word vectors, and correspodning gradsq */
-    long long w_size = (2 * vocab_size * (vector_size+1) + vector_size );
-    a = posix_memalign((void **)&W, 128, w_size * sizeof(real)); // Might perform better than malloc
+        long long a, b;
+        vector_size++; // Temporarily increment to allocate space for bias
+        /* Allocate space for word vectors and context word vectors, and correspodning gradsq */
+        long long w_size = (2 * vocab_size * (vector_size+1) + vector_size );
+        a = posix_memalign((void **)&W, 128, w_size * sizeof(real)); // Might perform better than malloc
     if (W == NULL) {
       fprintf(stderr, "Error allocating memory for W\n");
       exit(1);
     }
     a = posix_memalign((void **)&gradsq, 128, w_size * sizeof(real)); // Might perform better than malloc
-    if (gradsq == NULL) {
-      fprintf(stderr, "Error allocating memory for gradsq\n");
-      exit(1);
+        if (gradsq == NULL) {
+          fprintf(stderr, "Error allocating memory for gradsq\n");
+          exit(1);
     }
+
     for ( a = 0; a < w_size; a++) {
       W[a] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
       gradsq[a] = 1.0; // So initial value of eta is equal to initial learning rate
