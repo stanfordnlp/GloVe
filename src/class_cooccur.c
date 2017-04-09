@@ -59,7 +59,8 @@ int window_size = 15; // default context window size
 int symmetric = 1; // 0: asymmetric, 1: symmetric
 real memory_limit = 3; // soft limit, in gigabytes, used to estimate optimal array sizes
 char *vocab_file, *file_head;
-real class_weight = 0.5; // weight for classifier
+real label_weight = 0.5; // weight for classifier
+real combine_weight = 0.25; //weight for combination
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -280,8 +281,19 @@ int merge_files(int num) {
 	return 0;
 }
 
-int isClassWord(char *word){
+// Check whether this word is a supervised label
+int isLabelWord(char *word){
 	if ((word[0]=='_')&&(word[1]=='_')&&(word[2]=='l')&&(word[3]=='a')&&(word[4]=='a')&&(word[5]=='b')&&(word[6]=='e')&&(word[7]=='l')&&(word[8]=='_')&&(word[9]=='_')){
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
+
+// Check whether this word means that this line is for character combination information learning of the word
+int isCombineWord(char *word){
+	if ((word[0]=='_')&&(word[1]=='_')&&(word[2]=='c')&&(word[3]=='o')&&(word[4]=='m')&&(word[5]=='b')&&(word[6]=='i')&&(word[7]=='n')&&(word[8]=='e')&&(word[9]=='_')&&(word[10]=='_')){
 		return 1;
 	}
 	else{
@@ -298,7 +310,12 @@ int get_cooccurrence() {
 	real *bigram_table, r;
 
 	int have_class = 0;
+	int combine_learn = 0;
+	int record_combine_word = 0;
+	int guided_learn = 0;
+	long long combine_word = 0;
 	long long cur_class = 0;
+	real extra_added_weight = 0;
 	HASHREC *htmp, **vocab_hash = inithashtable();
 	CREC *cr = malloc(sizeof(CREC) * (overflow_length + 1));
 	history = malloc(sizeof(long long) * window_size);
@@ -360,58 +377,75 @@ int get_cooccurrence() {
 		}
 		flag = get_word(str, fid);
 		if (feof(fid)) break;
-		if (flag == 1) {j = 0; cur_class = 0; have_class = 0; continue;} // Newline, reset line index (j)
+		if (flag == 1) {j = 0; cur_class = 0; have_class = 0; combine_learn = 0; record_combine_word = 0; guided_learn = 0; continue;} // Newline, reset line index (j)
 		counter++;
 		if ((counter%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[19G%lld",counter);
 		htmp = hashsearch(vocab_hash, str);
 		if (htmp == NULL) continue; // Skip out-of-vocabulary words
 		w2 = htmp->id; // Target word (frequency rank)
-	if (isClassWord(str)){
-		cur_class = w2;
-		have_class = 1;
-	}
-	else{
-		for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
-			w1 = history[k % window_size]; // Context word (frequency rank)
-			if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
-				bigram_table[lookup[w1-1] + w2 - 2] += 1.0/((real)(j-k)); // Weight by inverse of distance between words
-				if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += 1.0/((real)(j-k)); // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
-			}
-			else { // Product is too big, data is likely to be sparse. Store these entries in a temporary buffer to be sorted, merged (accumulated), and written to file when it gets full.
-				cr[ind].word1 = w1;
-				cr[ind].word2 = w2;
-				cr[ind].val = 1.0/((real)(j-k));
-				ind++; // Keep track of how full temporary buffer is
-				if (symmetric > 0) { // Symmetric context
-					cr[ind].word1 = w2;
-					cr[ind].word2 = w1;
+		if (isLabelWord(str)){
+			cur_class = w2;
+			have_class = 1;
+		}
+		else if(isCombineWord(str)){
+			combine_learn = 1;
+		}
+		else if(combine_learn&&(record_combine_word==0)){
+			combine_word = w2;
+			record_combine_word = 1;
+		}
+		else{
+			for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
+				w1 = history[k % window_size]; // Context word (frequency rank)
+				if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
+					bigram_table[lookup[w1-1] + w2 - 2] += 1.0/((real)(j-k)); // Weight by inverse of distance between words
+					if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += 1.0/((real)(j-k)); // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
+				}
+				else { // Product is too big, data is likely to be sparse. Store these entries in a temporary buffer to be sorted, merged (accumulated), and written to file when it gets full.
+					cr[ind].word1 = w1;
+					cr[ind].word2 = w2;
 					cr[ind].val = 1.0/((real)(j-k));
-					ind++;
+					ind++; // Keep track of how full temporary buffer is
+					if (symmetric > 0) { // Symmetric context
+						cr[ind].word1 = w2;
+						cr[ind].word2 = w1;
+						cr[ind].val = 1.0/((real)(j-k));
+						ind++;
+					}
 				}
 			}
-		}
-		if(have_class){
-			w1 = cur_class; // Current class
-			if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
-				bigram_table[lookup[w1-1] + w2 - 2] += class_weight; // Weight by inverse of distance between words
-				if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += class_weight; // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
+			if(have_class){
+				w1 = cur_class;
+				extra_added_weight = label_weight;
+				guided_learn = 1;
 			}
-			else { // Product is too big, data is likely to be sparse. Store these entries in a temporary buffer to be sorted, merged (accumulated), and written to file when it gets full.
-				cr[ind].word1 = w1;
-				cr[ind].word2 = w2;
-				cr[ind].val = class_weight;
-				ind++; // Keep track of how full temporary buffer is
-				if (symmetric > 0) { // Symmetric context
-					cr[ind].word1 = w2;
-					cr[ind].word2 = w1;
-					cr[ind].val = class_weight;
-					ind++;
+			else if(record_combine_word){
+				w1 = combine_word;
+				extra_added_weight = combine_weight;
+				guided_learn = 1;
+			}
+			if(guided_learn){
+				w1 = cur_class; // Current class
+				if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
+					bigram_table[lookup[w1-1] + w2 - 2] += extra_added_weight; // Weight by inverse of distance between words
+					if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += extra_added_weight; // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
+				}
+				else { // Product is too big, data is likely to be sparse. Store these entries in a temporary buffer to be sorted, merged (accumulated), and written to file when it gets full.
+					cr[ind].word1 = w1;
+					cr[ind].word2 = w2;
+					cr[ind].val = extra_added_weight;
+					ind++; // Keep track of how full temporary buffer is
+					if (symmetric > 0) { // Symmetric context
+						cr[ind].word1 = w2;
+						cr[ind].word2 = w1;
+						cr[ind].val = extra_added_weight;
+						ind++;
+					}
 				}
 			}
+			history[j % window_size] = w2; // Target word is stored in circular buffer to become context word in the future
+			j++;
 		}
-		history[j % window_size] = w2; // Target word is stored in circular buffer to become context word in the future
-		j++;
-	}
 	}
 	
 	/* Write out temp buffer for the final time (it may not be full) */
@@ -485,7 +519,10 @@ int main(int argc, char **argv) {
 		printf("\t\tLimit to length <int> the sparse overflow array, which buffers cooccurrence data that does not fit in the dense array, before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'. Typically only needs adjustment for use with very large corpora.\n");
 		printf("\t-overflow-file <file>\n");
 		printf("\t\tFilename, excluding extension, for temporary files; default overflow\n");
-		printf("\t-class-weight <float>\n");
+		printf("\t-label-weight <float>\n");
+		printf("\t\tWeight for classifier, the larger, the more important the classifier\n");
+		printf("\t-combine-weight <float>\n");
+		printf("\t\tWeight for combination learning from character, the larger, the more important the combination information\n");
 
 		printf("\nExample usage:\n");
 		printf("./cooccur -verbose 2 -symmetric 0 -window-size 10 -vocab-file vocab.txt -memory 8.0 -overflow-file tempoverflow < corpus.txt > cooccurrences.bin\n\n");
@@ -511,7 +548,8 @@ int main(int argc, char **argv) {
 	/* Override estimates by specifying limits explicitly on the command line */
 	if ((i = find_arg((char *)"-max-product", argc, argv)) > 0) max_product = atoll(argv[i + 1]);
 	if ((i = find_arg((char *)"-overflow-length", argc, argv)) > 0) overflow_length = atoll(argv[i + 1]);
-	if ((i = find_arg((char *)"-class-weight", argc, argv)) > 0) class_weight = atof(argv[i + 1]);
+	if ((i = find_arg((char *)"-label-weight", argc, argv)) > 0) label_weight = atof(argv[i + 1]);
+	if ((i = find_arg((char *)"-combine-weight", argc, argv)) > 0) combine_weight = atof(argv[i + 1]);
 	
 	return get_cooccurrence();
 }
