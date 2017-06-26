@@ -58,7 +58,7 @@ long long overflow_length; // Number of cooccurrence records whose product excee
 int window_size = 15; // default context window size
 int symmetric = 1; // 0: asymmetric, 1: symmetric
 real memory_limit = 3; // soft limit, in gigabytes, used to estimate optimal array sizes
-int distance_weighting = 1;
+int distance_weighting = 1; // Flag to control the distance weighting of cooccurrence counts
 char *vocab_file, *file_head;
 
 /* Efficient string comparison */
