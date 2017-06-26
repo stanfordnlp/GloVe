@@ -58,6 +58,7 @@ long long overflow_length; // Number of cooccurrence records whose product excee
 int window_size = 15; // default context window size
 int symmetric = 1; // 0: asymmetric, 1: symmetric
 real memory_limit = 3; // soft limit, in gigabytes, used to estimate optimal array sizes
+int distance_weighting = 1;
 char *vocab_file, *file_head;
 
 /* Efficient string comparison */
@@ -356,18 +357,18 @@ int get_cooccurrence() {
         for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
             w1 = history[k % window_size]; // Context word (frequency rank)
             if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
-                bigram_table[lookup[w1-1] + w2 - 2] += 1.0/((real)(j-k)); // Weight by inverse of distance between words
-                if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += 1.0/((real)(j-k)); // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
+                bigram_table[lookup[w1-1] + w2 - 2] += distance_weighting ? 1.0/((real)(j-k)) : 1.0; // Weight by inverse of distance between words if needed
+                if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += distance_weighting ? 1.0/((real)(j-k)) : 1.0; // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
             }
             else { // Product is too big, data is likely to be sparse. Store these entries in a temporary buffer to be sorted, merged (accumulated), and written to file when it gets full.
                 cr[ind].word1 = w1;
                 cr[ind].word2 = w2;
-                cr[ind].val = 1.0/((real)(j-k));
+                cr[ind].val = distance_weighting ? 1.0/((real)(j-k)) : 1.0;
                 ind++; // Keep track of how full temporary buffer is
                 if (symmetric > 0) { // Symmetric context
                     cr[ind].word1 = w2;
                     cr[ind].word2 = w1;
-                    cr[ind].val = 1.0/((real)(j-k));
+                    cr[ind].val = distance_weighting ? 1.0/((real)(j-k)) : 1.0;
                     ind++;
                 }
             }
@@ -447,6 +448,8 @@ int main(int argc, char **argv) {
         printf("\t\tLimit to length <int> the sparse overflow array, which buffers cooccurrence data that does not fit in the dense array, before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'. Typically only needs adjustment for use with very large corpora.\n");
         printf("\t-overflow-file <file>\n");
         printf("\t\tFilename, excluding extension, for temporary files; default overflow\n");
+        printf("\t-distance-weighting <int>\n");
+        printf("\t\tIf <int> = 0, do not weight cooccurrence count by distance between words; if <int> = 1 (default), weight the cooccurrence count by inverse of distance between words\n");
 
         printf("\nExample usage:\n");
         printf("./cooccur -verbose 2 -symmetric 0 -window-size 10 -vocab-file vocab.txt -memory 8.0 -overflow-file tempoverflow < corpus.txt > cooccurrences.bin\n\n");
@@ -461,6 +464,7 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-overflow-file", argc, argv)) > 0) strcpy(file_head, argv[i + 1]);
     else strcpy(file_head, (char *)"overflow");
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
+    if ((i = find_arg((char *)"-distance-weighting", argc, argv)) > 0)  distance_weighting = atoi(argv[i + 1]);
     
     /* The memory_limit determines a limit on the number of elements in bigram_table and the overflow buffer */
     /* Estimate the maximum value that max_product can take so that this limit is still satisfied */
