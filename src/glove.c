@@ -221,7 +221,7 @@ int save_params(int nb_iter) {
         fid = fopen(vocab_file, "r");
         sprintf(format,"%%%ds",MAX_STRING_LENGTH);
         if (fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
-	if (write_header) fprintf(fout, "%ld %d\n", vocab_size, vector_size);
+	if (write_header) fprintf(fout, "%lld %d\n", vocab_size, vector_size);
         for (a = 0; a < vocab_size; a++) {
             if (fscanf(fid,format,word) == 0) return 1;
             // input vocab cannot contain special <unk> keyword
