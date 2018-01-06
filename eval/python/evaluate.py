@@ -26,7 +26,7 @@ def main():
             continue
         W[vocab[word], :] = v
 
-    # normalize each word vector to unit variance
+    # normalize each word vector to unit length
     W_norm = np.zeros(W.shape)
     d = (np.sum(W ** 2, 1) ** (0.5))
     W_norm = (W.T / d).T
