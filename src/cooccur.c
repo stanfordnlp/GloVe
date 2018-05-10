@@ -331,7 +331,7 @@ int get_cooccurrence() {
     fid = stdin;
     sprintf(format,"%%%ds",MAX_STRING_LENGTH);
     sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
-    foverflow = fopen(filename,"w");
+    foverflow = fopen(filename,"wb");
     if (verbose > 1) fprintf(stderr,"Processing token: 0");
     
     /* For each token in input stream, calculate a weighted cooccurrence sum within window_size */
@@ -342,7 +342,7 @@ int get_cooccurrence() {
             fclose(foverflow);
             fidcounter++;
             sprintf(filename,"%s_%04d.bin",file_head,fidcounter);
-            foverflow = fopen(filename,"w");
+            foverflow = fopen(filename,"wb");
             ind = 0;
         }
         flag = get_word(str, fid);
@@ -384,7 +384,7 @@ int get_cooccurrence() {
     
     /* Write out full bigram_table, skipping zeros */
     if (verbose > 1) fprintf(stderr, "Writing cooccurrences to disk");
-    fid = fopen(filename,"w");
+    fid = fopen(filename,"wb");
     j = 1e6;
     for (x = 1; x <= vocab_size; x++) {
         if ( (long long) (0.75*log(vocab_size / x)) < j) {j = (long long) (0.75*log(vocab_size / x)); if (verbose > 1) fprintf(stderr,".");} // log's to make it look (sort of) pretty
