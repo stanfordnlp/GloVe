@@ -26,9 +26,9 @@
 #include <string.h>
 #include <math.h>
 
+#define MAX_STRING_LENGTH 1000
 #define TSIZE 1048576
 #define SEED 1159241
-#define MAX_STRING_LENGTH 1000
 
 #define HASHFN bitwisehash
 
