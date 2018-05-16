@@ -1,6 +1,6 @@
 //  Tool to calculate word-word cooccurrence statistics
 //
-//  Copyright (c) 2014 The Board of Trustees of
+//  Copyright (c) 2014, 2018 The Board of Trustees of
 //  The Leland Stanford Junior University. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,9 +28,10 @@
 
 #define TSIZE 1048576
 #define SEED 1159241
+#define MAX_STRING_LENGTH 1000
+
 #define HASHFN bitwisehash
 
-static const int MAX_STRING_LENGTH = 1000;
 typedef double real;
 
 typedef struct cooccur_rec {
@@ -122,7 +123,7 @@ int get_word(char *word, FILE *fin) {
     int i = 0, ch;
     while (!feof(fin)) {
         ch = fgetc(fin);
-        if (ch == 13) continue;
+        if (ch == '\r') continue;
         if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
             if (i > 0) {
                 if (ch == '\n') ungetc(ch, fin);

@@ -29,6 +29,7 @@
 #define MAX_STRING_LENGTH 1000
 #define TSIZE	1048576
 #define SEED	1159241
+
 #define HASHFN  bitwisehash
 
 typedef struct vocabulary {
