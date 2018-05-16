@@ -74,7 +74,7 @@ void initialize_parameters() {
         exit(1);
     }
     a = posix_memalign((void **)&gradsq, 128, 2 * vocab_size * (vector_size + 1) * sizeof(real)); // Might perform better than malloc
-	if (gradsq == NULL) {
+        if (gradsq == NULL) {
         fprintf(stderr, "Error allocating memory for gradsq\n");
         exit(1);
     }
@@ -221,7 +221,7 @@ int save_params(int nb_iter) {
         fid = fopen(vocab_file, "r");
         sprintf(format,"%%%ds",MAX_STRING_LENGTH);
         if (fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
-	if (write_header) fprintf(fout, "%lld %d\n", vocab_size, vector_size);
+        if (write_header) fprintf(fout, "%lld %d\n", vocab_size, vector_size);
         for (a = 0; a < vocab_size; a++) {
             if (fscanf(fid,format,word) == 0) return 1;
             // input vocab cannot contain special <unk> keyword
@@ -371,8 +371,8 @@ int main(int argc, char **argv) {
         printf("Usage options:\n");
         printf("\t-verbose <int>\n");
         printf("\t\tSet verbosity: 0, 1, or 2 (default)\n");
-	printf("\t-write-header <int>\n");
-	printf("\t\tIf 1, write vocab_size/vector_size as first line. Do nothing if 0 (default).\n");
+        printf("\t-write-header <int>\n");
+        printf("\t\tIf 1, write vocab_size/vector_size as first line. Do nothing if 0 (default).\n");
         printf("\t-vector-size <int>\n");
         printf("\t\tDimension of word vector representations (excluding bias term); default 50\n");
         printf("\t-threads <int>\n");
@@ -408,7 +408,7 @@ int main(int argc, char **argv) {
         printf("./glove -input-file cooccurrence.shuf.bin -vocab-file vocab.txt -save-file vectors -gradsq-file gradsq -verbose 2 -vector-size 100 -threads 16 -alpha 0.75 -x-max 100.0 -eta 0.05 -binary 2 -model 2\n\n");
         result = 0;
     } else {
-	if ((i = find_arg((char *)"-write-header", argc, argv)) > 0) write_header = atoi(argv[i + 1]);
+        if ((i = find_arg((char *)"-write-header", argc, argv)) > 0) write_header = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-verbose", argc, argv)) > 0) verbose = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-vector-size", argc, argv)) > 0) vector_size = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-iter", argc, argv)) > 0) num_iter = atoi(argv[i + 1]);

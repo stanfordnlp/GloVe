@@ -27,8 +27,8 @@
 #include <string.h>
 
 #define MAX_STRING_LENGTH 1000
-#define TSIZE	1048576
-#define SEED	1159241
+#define TSIZE   1048576
+#define SEED    1159241
 
 #define HASHFN  bitwisehash
 
@@ -83,7 +83,7 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
 
 /* Create hash table, initialise pointers to NULL */
 HASHREC ** inithashtable() {
-    int	i;
+    int i;
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
     for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
@@ -92,7 +92,7 @@ HASHREC ** inithashtable() {
 
 /* Search hash table for given string, insert if not found */
 void hashinsert(HASHREC **ht, char *w) {
-    HASHREC	*htmp, *hprv;
+    HASHREC     *htmp, *hprv;
     unsigned int hval = HASHFN(w, TSIZE, SEED);
     
     for (hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);

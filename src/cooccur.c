@@ -48,7 +48,7 @@ typedef struct cooccur_rec_id {
 } CRECID;
 
 typedef struct hashrec {
-    char	*word;
+    char        *word;
     long long id;
     struct hashrec *next;
 } HASHREC;
@@ -81,7 +81,7 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
 
 /* Create hash table, initialise pointers to NULL */
 HASHREC ** inithashtable() {
-    int	i;
+    int i;
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
     for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
@@ -90,7 +90,7 @@ HASHREC ** inithashtable() {
 
 /* Search hash table for given string, return record if found, else NULL */
 HASHREC *hashsearch(HASHREC **ht, char *w) {
-    HASHREC	*htmp, *hprv;
+    HASHREC     *htmp, *hprv;
     unsigned int hval = HASHFN(w, TSIZE, SEED);
     for (hprv = NULL, htmp=ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
     if ( htmp != NULL && hprv!=NULL ) { // move to front on access
@@ -103,7 +103,7 @@ HASHREC *hashsearch(HASHREC **ht, char *w) {
 
 /* Insert string in hash table, check for duplicates which should be absent */
 void hashinsert(HASHREC **ht, char *w, long long id) {
-    HASHREC	*htmp, *hprv;
+    HASHREC     *htmp, *hprv;
     unsigned int hval = HASHFN(w, TSIZE, SEED);
     for (hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
     if (htmp == NULL) {
