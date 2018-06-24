@@ -19,6 +19,8 @@
 //
 //  For more information, bug reports, fixes, contact:
 //    Jeffrey Pennington (jpennin@stanford.edu)
+//    Christopher Manning (manning@cs.stanford.edu)
+//    https://github.com/stanfordnlp/GloVe/
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
@@ -51,7 +53,7 @@ long long max_vocab = 0; // max_vocab = 0 for no limit
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
     while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
-    return(*s1 - *s2);
+    return *s1 - *s2;
 }
 
 
@@ -77,8 +79,8 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
     char c;
     unsigned int h;
     h = seed;
-    for (; (c =* word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
-    return((unsigned int)((h&0x7fffffff) % tsize));
+    for ( ; (c = *word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
+    return (unsigned int)((h & 0x7fffffff) % tsize);
 }
 
 /* Create hash table, initialise pointers to NULL */
@@ -87,7 +89,7 @@ HASHREC ** inithashtable() {
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
     for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
-    return(ht);
+    return ht;
 }
 
 /* Search hash table for given string, insert if not found */
@@ -120,9 +122,51 @@ void hashinsert(HASHREC **ht, char *w) {
     return;
 }
 
+/* Read word from input stream. Return 1 when encounter '\n' or EOF (but separate from word), 0 otherwise.
+   Words can be separated by space(s), tab(s), or newline(s). Carriage return characters are just ignored.
+   (Okay for Windows, but not for Mac OS 9-. Ignored even if by themselves or in words.)
+   A newline is taken as indicating a new document (contexts won't cross newline).
+   Argument word array is assumed to be of size MAX_STRING_LENGTH.
+   words will be truncated if too long. They are truncated with some care so that they
+   cannot truncate in the middle of a utf-8 character, but
+   still little to no harm will be done for other encodings like iso-8859-1.
+   (This function appears identically copied in vocab_count.c and cooccur.c.)
+ */
+int get_word(char *word, FILE *fin) {
+    int i = 0, ch;
+    for ( ; ; ) {
+        ch = fgetc(fin);
+        if (ch == '\r') continue;
+        if (i == 0 && ((ch == '\n') || (ch == EOF))) {
+            word[i] = 0;
+            return 1;
+        }
+        if (i == 0 && ((ch == ' ') || (ch == '\t'))) continue; // skip leading space
+        if ((ch == EOF) || (ch == ' ') || (ch == '\t') || (ch == '\n')) {
+            if (ch == '\n') ungetc(ch, fin); // return the newline next time as document ender
+            break;
+        }
+        if (i < MAX_STRING_LENGTH - 1)
+          word[i++] = ch; // don't allow words to exceed MAX_STRING_LENGTH
+    }
+    word[i] = 0; //null terminate
+    // avoid truncation destroying a multibyte UTF-8 char except if only thing on line (so the i > x tests won't overwrite word[0])
+    // see https://en.wikipedia.org/wiki/UTF-8#Description
+    if (i == MAX_STRING_LENGTH - 1 && (word[i-1] & 0x80) == 0x80) {
+        if ((word[i-1] & 0xC0) == 0xC0) {
+            word[i-1] = '\0';
+        } else if (i > 2 && (word[i-2] & 0xE0) == 0xE0) {
+            word[i-2] = '\0';
+        } else if (i > 3 && (word[i-3] & 0xF8) == 0xF0) {
+            word[i-3] = '\0';
+        }
+    }
+    return 0;
+}
+
 int get_counts() {
     long long i = 0, j = 0, vocab_size = 12500;
-    char format[20];
+    // char format[20];
     char str[MAX_STRING_LENGTH + 1];
     HASHREC **vocab_hash = inithashtable();
     HASHREC *htmp;
@@ -131,8 +175,11 @@ int get_counts() {
     
     fprintf(stderr, "BUILDING VOCABULARY\n");
     if (verbose > 1) fprintf(stderr, "Processed %lld tokens.", i);
-    sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-    while (fscanf(fid, format, str) != EOF) { // Insert all tokens into hashtable
+    // sprintf(format,"%%%ds",MAX_STRING_LENGTH);
+    while ( ! feof(fid)) {
+        // Insert all tokens into hashtable
+        int nl = get_word(str, fid);
+        if (nl) continue; // just a newline marker or feof
         if (strcmp(str, "<unk>") == 0) {
             fprintf(stderr, "\nError, <unk> vector found in corpus.\nPlease remove <unk>s from your corpus (e.g. cat text8 | sed -e 's/<unk>/<raw_unk>/g' > text8.new)");
             return 1;

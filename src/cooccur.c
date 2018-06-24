@@ -18,6 +18,8 @@
 //
 //  For more information, bug reports, fixes, contact:
 //    Jeffrey Pennington (jpennin@stanford.edu)
+//    Christopher Manning (manning@cs.stanford.edu)
+//    https://github.com/stanfordnlp/GloVe/
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
@@ -119,24 +121,45 @@ void hashinsert(HASHREC **ht, char *w, long long id) {
     return;
 }
 
-/* Read word from input stream */
+/* Read word from input stream. Return 1 when encounter '\n' or EOF (but separate from word), 0 otherwise.
+   Words can be separated by space(s), tab(s), or newline(s). Carriage return characters are just ignored.
+   (Okay for Windows, but not for Mac OS 9-. Ignored even if by themselves or in words.)
+   A newline is taken as indicating a new document (contexts won't cross newline).
+   Argument word array is assumed to be of size MAX_STRING_LENGTH.
+   words will be truncated if too long. They are truncated with some care so that they
+   cannot truncate in the middle of a utf-8 character, but
+   still little to no harm will be done for other encodings like iso-8859-1.
+   (This function appears identically copied in vocab_count.c and cooccur.c.)
+ */
 int get_word(char *word, FILE *fin) {
     int i = 0, ch;
-    while (!feof(fin)) {
+    for ( ; ; ) {
         ch = fgetc(fin);
         if (ch == '\r') continue;
-        if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
-            if (i > 0) {
-                if (ch == '\n') ungetc(ch, fin);
-                break;
-            }
-            if (ch == '\n') return 1;
-            else continue;
+        if (i == 0 && ((ch == '\n') || (ch == EOF))) {
+            word[i] = 0;
+            return 1;
         }
-        word[i++] = ch;
-        if (i >= MAX_STRING_LENGTH - 1) i--;   // truncate words that exceed max length
+        if (i == 0 && ((ch == ' ') || (ch == '\t'))) continue; // skip leading space
+        if ((ch == EOF) || (ch == ' ') || (ch == '\t') || (ch == '\n')) {
+            if (ch == '\n') ungetc(ch, fin); // return the newline next time as document ender
+            break;
+        }
+        if (i < MAX_STRING_LENGTH - 1)
+          word[i++] = ch; // don't allow words to exceed MAX_STRING_LENGTH
     }
-    word[i] = 0;
+    word[i] = 0; //null terminate
+    // avoid truncation destroying a multibyte UTF-8 char except if only thing on line (so the i > x tests won't overwrite word[0])
+    // see https://en.wikipedia.org/wiki/UTF-8#Description
+    if (i == MAX_STRING_LENGTH - 1 && (word[i-1] & 0x80) == 0x80) {
+        if ((word[i-1] & 0xC0) == 0xC0) {
+            word[i-1] = '\0';
+        } else if (i > 2 && (word[i-2] & 0xE0) == 0xE0) {
+            word[i-2] = '\0';
+        } else if (i > 3 && (word[i-3] & 0xF8) == 0xF0) {
+            word[i-3] = '\0';
+        }
+    }
     return 0;
 }
 
@@ -331,8 +354,8 @@ int get_cooccurrence() {
     }
     
     fid = stdin;
-    sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-    sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
+    // sprintf(format,"%%%ds",MAX_STRING_LENGTH);
+    sprintf(filename,"%s_%04d.bin", file_head, fidcounter);
     foverflow = fopen(filename,"wb");
     if (verbose > 1) fprintf(stderr,"Processing token: 0");
     
@@ -348,15 +371,28 @@ int get_cooccurrence() {
             ind = 0;
         }
         flag = get_word(str, fid);
-        if (feof(fid)) break;
-        if (flag == 1) {j = 0; continue;} // Newline, reset line index (j)
+        if (verbose > 2) fprintf(stderr, "Maybe processing token: %s\n", str);
+        if (flag == 1) {
+            // Newline, reset line index (j); maybe eof.
+            if (feof(fid)) {
+                if (verbose > 2) fprintf(stderr, "Not getting coocurs as at eof\n");
+                break;
+            }
+            j = 0;
+            if (verbose > 2) fprintf(stderr, "Not getting coocurs as at newline\n");
+            continue;
+        }
         counter++;
         if ((counter%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[19G%lld",counter);
         htmp = hashsearch(vocab_hash, str);
-        if (htmp == NULL) continue; // Skip out-of-vocabulary words
+        if (htmp == NULL) {
+            if (verbose > 2) fprintf(stderr, "Not getting coocurs as word not in vocab\n");
+            continue; // Skip out-of-vocabulary words
+        }
         w2 = htmp->id; // Target word (frequency rank)
         for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
             w1 = history[k % window_size]; // Context word (frequency rank)
+            if (verbose > 2) fprintf(stderr, "Adding cooccur between words %lld and %lld.\n", w1, w2);
             if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
                 bigram_table[lookup[w1-1] + w2 - 2] += distance_weighting ? 1.0/((real)(j-k)) : 1.0; // Weight by inverse of distance between words if needed
                 if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += distance_weighting ? 1.0/((real)(j-k)) : 1.0; // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
@@ -389,7 +425,10 @@ int get_cooccurrence() {
     fid = fopen(filename,"wb");
     j = 1e6;
     for (x = 1; x <= vocab_size; x++) {
-        if ( (long long) (0.75*log(vocab_size / x)) < j) {j = (long long) (0.75*log(vocab_size / x)); if (verbose > 1) fprintf(stderr,".");} // log's to make it look (sort of) pretty
+        if ( (long long) (0.75*log(vocab_size / x)) < j) {
+            j = (long long) (0.75*log(vocab_size / x));
+            if (verbose > 1) fprintf(stderr,".");
+        } // log's to make it look (sort of) pretty
         for (y = 1; y <= (lookup[x] - lookup[x-1]); y++) {
             if ((r = bigram_table[lookup[x-1] - 2 + y]) != 0) {
                 fwrite(&x, sizeof(int), 1, fid);
@@ -434,7 +473,7 @@ int main(int argc, char **argv) {
         printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
         printf("Usage options:\n");
         printf("\t-verbose <int>\n");
-        printf("\t\tSet verbosity: 0, 1, or 2 (default)\n");
+        printf("\t\tSet verbosity: 0, 1, 2 (default), or 3\n");
         printf("\t-symmetric <int>\n");
         printf("\t\tIf <int> = 0, only use left context; if <int> = 1 (default), use left and right\n");
         printf("\t-window-size <int>\n");
