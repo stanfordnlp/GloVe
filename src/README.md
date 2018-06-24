@@ -1,6 +1,6 @@
 ### Package Contents
 
-To train your own GloVe vectors, first you'll need to prepare your corpus as a single text file with all words separated by a single space. If your corpus has multiple documents, simply concatenate documents together with a single space. If your documents are particularly short, it's possible that padding the gap between documents with e.g. 5 "dummy" words will produce better vectors. Once you create your corpus, you can train GloVe vectors using the following 4 tools. An example is included in `demo.sh`, which you can modify as necessary.
+To train your own GloVe vectors, first you'll need to prepare your corpus as a single text file with all words separated by a single space. If your corpus has multiple documents, they can be separated by new line characters. Once you create your corpus, you can train GloVe vectors using the following 4 tools. An example is included in `demo.sh`, which you can modify as necessary.
 
 This four main tools in this package are: 
 #### 1) vocab_count
