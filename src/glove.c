@@ -29,6 +29,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <time.h>
+#include <signal.h>
 
 #define _FILE_OFFSET_BITS 64
 #define MAX_STRING_LENGTH 1000
@@ -56,6 +57,8 @@ real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremel
 real *W, *gradsq, *cost;
 long long num_lines, *lines_per_thread, vocab_size;
 char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
+
+volatile sig_atomic_t checkpoint_after_curr_iter = 0;
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -336,11 +339,12 @@ int train_glove() {
         strftime(time_buffer,80,"%x - %I:%M.%S%p", info);
         fprintf(stderr, "%s, iter: %03d, cost: %lf\n", time_buffer,  b+1, total_cost/num_lines);
 
-        if (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0) {
+        if (checkpoint_after_curr_iter || (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0)) {
             fprintf(stderr,"    saving itermediate parameters for iter %03d...", b+1);
             save_params_return_code = save_params(b+1);
             if (save_params_return_code != 0)
                 return save_params_return_code;
+            checkpoint_after_curr_iter = 0;
             fprintf(stderr,"done.\n");
         }
 
@@ -364,6 +368,36 @@ int find_arg(char *str, int argc, char **argv) {
     return -1;
 }
 
+void *sig_handler_thread(void *nothing) {
+    
+    sigset_t signals;
+    
+    sigemptyset(&signals);
+    sigaddset(&signals, SIGUSR1);
+    
+    for(;;) {
+        int signo;
+        if (0 == sigwait(&signals, &signo)) {
+            if (signo == SIGUSR1) {
+                fprintf(stderr, "    saving checkpoint after current iteration requested.\n");
+                checkpoint_after_curr_iter = 1;
+            }
+        } else {
+            fprintf(stderr, "Error while waiting for signal.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+int start_sig_handler_thread(pthread_t *sig_handler_pt) {
+  sigset_t sig_mask;
+  sigemptyset(&sig_mask);
+  sigaddset(&sig_mask, SIGUSR1);
+  pthread_sigmask(SIG_BLOCK, &sig_mask, NULL);
+
+  return pthread_create(sig_handler_pt, NULL, sig_handler_thread, NULL);
+}
+
 int main(int argc, char **argv) {
     int i;
     FILE *fid;
@@ -372,6 +406,12 @@ int main(int argc, char **argv) {
     save_W_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     save_gradsq_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     int result = 0;
+    
+    pthread_t sig_handler_pt;
+    if (start_sig_handler_thread(&sig_handler_pt)) {
+      fprintf(stderr, "Cannot create sig handler thread.\n");
+      exit(EXIT_FAILURE);
+    }
     
     if (argc == 1) {
         printf("GloVe: Global Vectors for Word Representation, v0.2\n");
