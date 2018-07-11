@@ -13,20 +13,20 @@ def main():
         vectors = {}
         for line in f:
             vals = line.rstrip().split(' ')
-            vectors[vals[0]] = [float(x) for x in vals[1:]]
+            vectors[vals[0]] = list(map(float, vals[1:]))
 
     vocab_size = len(words)
     vocab = {w: idx for idx, w in enumerate(words)}
     ivocab = {idx: w for idx, w in enumerate(words)}
 
-    vector_dim = len(vectors[ivocab[0]])
+    vector_dim = len(list(vectors[ivocab[0]]))
     W = np.zeros((vocab_size, vector_dim))
     for word, v in vectors.items():
         if word == '<unk>':
             continue
         W[vocab[word], :] = v
 
-    # normalize each word vector to unit length
+    # normalize each word vector to unit variance
     W_norm = np.zeros(W.shape)
     d = (np.sum(W ** 2, 1) ** (0.5))
     W_norm = (W.T / d).T
