@@ -37,6 +37,7 @@ typedef struct cooccur_rec {
 } CREC;
 
 int verbose = 2; // 0, 1, or 2
+int seed = 1;
 long long array_size = 2000000; // size of chunks to shuffle individually
 char *file_head; // temporary file string
 real memory_limit = 2.0; // soft limit, in gigabytes
@@ -84,7 +85,7 @@ int shuffle_merge(int num) {
     CREC *array;
     char filename[MAX_STRING_LENGTH];
     FILE **fid, *fout = stdout;
-    
+
     array = malloc(sizeof(CREC) * array_size);
     fid = malloc(sizeof(FILE) * num);
     for (fidcounter = 0; fidcounter < num; fidcounter++) { //num = number of temporary files to merge
@@ -96,7 +97,7 @@ int shuffle_merge(int num) {
         }
     }
     if (verbose > 0) fprintf(stderr, "Merging temp files: processed %ld lines.", l);
-    
+
     while (1) { //Loop until EOF in all files
         i = 0;
         //Read at most array_size values into array, roughly array_size/num from each temp file
@@ -127,13 +128,14 @@ int shuffle_merge(int num) {
 
 /* Shuffle large input stream by splitting into chunks */
 int shuffle_by_chunks() {
+    srand(seed);
     long i = 0, l = 0;
     int fidcounter = 0;
     char filename[MAX_STRING_LENGTH];
     CREC *array;
     FILE *fin = stdin, *fid;
     array = malloc(sizeof(CREC) * array_size);
-    
+
     fprintf(stderr,"SHUFFLING COOCCURRENCES\n");
     if (verbose > 0) fprintf(stderr,"array size: %lld\n", array_size);
     sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
@@ -143,7 +145,7 @@ int shuffle_by_chunks() {
         return 1;
     }
     if (verbose > 1) fprintf(stderr, "Shuffling by chunks: processed 0 lines.");
-    
+
     while (1) { //Continue until EOF
         if (i >= array_size) {// If array is full, shuffle it and save to temporary file
             shuffle(array, i-2);
@@ -191,7 +193,7 @@ int find_arg(char *str, int argc, char **argv) {
 int main(int argc, char **argv) {
     int i;
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
-    
+
     if (argc == 1) {
         printf("Tool to shuffle entries of word-word cooccurrence files\n");
         printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
@@ -204,18 +206,20 @@ int main(int argc, char **argv) {
         printf("\t\tLimit to length <int> the buffer which stores chunks of data to shuffle before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'.\n");
         printf("\t-temp-file <file>\n");
         printf("\t\tFilename, excluding extension, for temporary files; default temp_shuffle\n");
-        
+        printf("\t-seed <int>\n");
+        printf("\t\tValue passed to srand (default 1)\n");
+
         printf("\nExample usage: (assuming 'cooccurrence.bin' has been produced by 'coccur')\n");
         printf("./shuffle -verbose 2 -memory 8.0 < cooccurrence.bin > cooccurrence.shuf.bin\n");
         return 0;
     }
-   
+
     if ((i = find_arg((char *)"-verbose", argc, argv)) > 0) verbose = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-temp-file", argc, argv)) > 0) strcpy(file_head, argv[i + 1]);
     else strcpy(file_head, (char *)"temp_shuffle");
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
     array_size = (long long) (0.95 * (real)memory_limit * 1073741824/(sizeof(CREC)));
     if ((i = find_arg((char *)"-array-size", argc, argv)) > 0) array_size = atoll(argv[i + 1]);
+    if ((i = find_arg((char *)"-seed", argc, argv)) > 0) seed = atoi(argv[i + 1]);
     return shuffle_by_chunks();
 }
-
