@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define MAX_STRING_LENGTH 1000
 
@@ -40,6 +41,14 @@ int verbose = 2; // 0, 1, or 2
 long long array_size = 2000000; // size of chunks to shuffle individually
 char *file_head; // temporary file string
 real memory_limit = 2.0; // soft limit, in gigabytes
+
+/* Log errors when loading files */
+int log_file_loading_error(char *file_name) {
+    fprintf(stderr, "Unable to open file %s.\n", file_name);
+    fprintf(stderr, "Errno: %d\n", errno);
+    fprintf(stderr, "Error description: %s\n", strerror(errno));
+    return errno;
+}
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -91,7 +100,7 @@ int shuffle_merge(int num) {
         sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
         fid[fidcounter] = fopen(filename, "rb");
         if (fid[fidcounter] == NULL) {
-            fprintf(stderr, "Unable to open file %s.\n",filename);
+            log_file_loading_error(filename);
             return 1;
         }
     }
@@ -139,7 +148,7 @@ int shuffle_by_chunks() {
     sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
     fid = fopen(filename,"w");
     if (fid == NULL) {
-        fprintf(stderr, "Unable to open file %s.\n",filename);
+        log_file_loading_error(filename);
         return 1;
     }
     if (verbose > 1) fprintf(stderr, "Shuffling by chunks: processed 0 lines.");
@@ -155,7 +164,7 @@ int shuffle_by_chunks() {
             sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
             fid = fopen(filename,"w");
             if (fid == NULL) {
-                fprintf(stderr, "Unable to open file %s.\n",filename);
+                log_file_loading_error(filename);
                 return 1;
             }
             i = 0;
