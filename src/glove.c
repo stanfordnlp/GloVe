@@ -29,6 +29,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <time.h>
+#include <errno.h>
 
 #define _FILE_OFFSET_BITS 64
 #define MAX_STRING_LENGTH 1000
@@ -56,6 +57,14 @@ real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremel
 real *W, *gradsq, *cost;
 long long num_lines, *lines_per_thread, vocab_size;
 char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
+
+/* Log errors when loading files */
+int log_file_loading_error(char *file_name) {
+    fprintf(stderr, "Unable to open file %s.\n", file_name);
+    fprintf(stderr, "Errno: %d\n", errno);
+    fprintf(stderr, "Error description: %s\n", strerror(errno));
+    return errno;
+}
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -195,7 +204,7 @@ int save_params(int nb_iter) {
             sprintf(output_file,"%s.%03d.bin",save_W_file,nb_iter);
 
         fout = fopen(output_file,"wb");
-        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
+        if (fout == NULL) {log_file_loading_error(save_W_file); return 1;}
         for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
         fclose(fout);
         if (save_gradsq > 0) {
@@ -205,7 +214,7 @@ int save_params(int nb_iter) {
                 sprintf(output_file_gsq,"%s.%03d.bin",save_gradsq_file,nb_iter);
 
             fgs = fopen(output_file_gsq,"wb");
-            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
+            if (fgs == NULL) {log_file_loading_error(save_gradsq_file); return 1;}
             for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&gradsq[a], sizeof(real), 1,fgs);
             fclose(fgs);
         }
@@ -222,13 +231,13 @@ int save_params(int nb_iter) {
                 sprintf(output_file_gsq,"%s.%03d.txt",save_gradsq_file,nb_iter);
 
             fgs = fopen(output_file_gsq,"wb");
-            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
+            if (fgs == NULL) {log_file_loading_error(save_gradsq_file); return 1;}
         }
         fout = fopen(output_file,"wb");
-        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
+        if (fout == NULL) {log_file_loading_error(save_W_file); return 1;}
         fid = fopen(vocab_file, "r");
         sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-        if (fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
+        if (fid == NULL) {log_file_loading_error(vocab_file); return 1;}
         if (write_header) fprintf(fout, "%lld %d\n", vocab_size, vector_size);
         for (a = 0; a < vocab_size; a++) {
             if (fscanf(fid,format,word) == 0) return 1;
@@ -300,7 +309,7 @@ int train_glove() {
     fprintf(stderr, "TRAINING MODEL\n");
     
     fin = fopen(input_file, "rb");
-    if (fin == NULL) {fprintf(stderr,"Unable to open cooccurrence file %s.\n",input_file); return 1;}
+    if (fin == NULL) {log_file_loading_error(input_file); return 1;}
     fseeko(fin, 0, SEEK_END);
     file_size = ftello(fin);
     num_lines = file_size/(sizeof(CREC)); // Assuming the file isn't corrupt and consists only of CREC's
@@ -444,7 +453,7 @@ int main(int argc, char **argv) {
         
         vocab_size = 0;
         fid = fopen(vocab_file, "r");
-        if (fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); return 1;}
+        if (fid == NULL) {log_file_loading_error(vocab_file); return 1;}
         while ((i = getc(fid)) != EOF) if (i == '\n') vocab_size++; // Count number of entries in vocab_file
         fclose(fid);
 
