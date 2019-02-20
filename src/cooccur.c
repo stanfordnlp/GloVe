@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <errno.h>
 
 #define MAX_STRING_LENGTH 1000
 #define TSIZE 1048576
@@ -63,6 +64,15 @@ int symmetric = 1; // 0: asymmetric, 1: symmetric
 real memory_limit = 3; // soft limit, in gigabytes, used to estimate optimal array sizes
 int distance_weighting = 1; // Flag to control the distance weighting of cooccurrence counts
 char *vocab_file, *file_head;
+
+
+/* Log errors when loading files */
+int log_file_loading_error(char *file_name) {
+    fprintf(stderr, "Unable to open file %s.\n", file_name);
+    fprintf(stderr, "Errno: %d\n", errno);
+    fprintf(stderr, "Error description: %s\n", strerror(errno));
+    return errno;
+}
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -263,7 +273,7 @@ int merge_files(int num) {
     for (i = 0; i < num; i++) {
         sprintf(filename,"%s_%04d.bin",file_head,i);
         fid[i] = fopen(filename,"rb");
-        if (fid[i] == NULL) {fprintf(stderr, "Unable to open file %s.\n",filename); return 1;}
+        if (fid[i] == NULL) {log_file_loading_error(filename); return 1;}
         fread(&new, sizeof(CREC), 1, fid[i]);
         new.id = i;
         insert(pq,new,i+1);
@@ -326,7 +336,7 @@ int get_cooccurrence() {
     sprintf(format,"%%%ds %%lld", MAX_STRING_LENGTH); // Format to read from vocab file, which has (irrelevant) frequency data
     if (verbose > 1) fprintf(stderr, "Reading vocab from file \"%s\"...", vocab_file);
     fid = fopen(vocab_file,"r");
-    if (fid == NULL) {fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); return 1;}
+    if (fid == NULL) {log_file_loading_error(vocab_file); return 1;}
     while (fscanf(fid, format, str, &id) != EOF) hashinsert(vocab_hash, str, ++j); // Here id is not used: inserting vocab words into hash table with their frequency rank, j
     fclose(fid);
     vocab_size = j;
