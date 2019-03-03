@@ -188,6 +188,23 @@ int find_arg(char *str, int argc, char **argv) {
     return -1;
 }
 
+int validate_array_size(int requested_array_size, real step_size) {
+    int new_array_size;
+    new_array_size = requested_array_size; // initialize new array_size
+    CREC *array;
+    while(1) {
+        // try to allocate an array, if it works, return the new_array_size
+        array = malloc(sizeof(CREC) * new_array_size); 
+        if (array) {
+            free(array);
+            fprintf(stderr, "Requested array size %d reduced to %d\n", requested_array_size, new_array_size);
+            return new_array_size;
+        }
+        // if array was not allocated, reduce by step size % and try again
+        new_array_size = new_array_size * (1 - step_size);
+    }
+}
+
 int main(int argc, char **argv) {
     int i;
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
@@ -216,6 +233,7 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
     array_size = (long long) (0.95 * (real)memory_limit * 1073741824/(sizeof(CREC)));
     if ((i = find_arg((char *)"-array-size", argc, argv)) > 0) array_size = atoll(argv[i + 1]);
+    array_size = validate_array_size(array_size, 0.05);
     return shuffle_by_chunks();
 }
 
