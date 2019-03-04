@@ -1,19 +1,26 @@
 import argparse
 import numpy as np
-import sys
+# import sys
+np.seterr(divide='ignore', invalid='ignore')  # fix runtime error when dividing by zero
+
 
 def generate():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--vocab_file', default='vocab.txt', type=str)
+    parser.add_argument('--vocab_file', default=None, type=str)
     parser.add_argument('--vectors_file', default='vectors.txt', type=str)
     args = parser.parse_args()
 
-    with open(args.vocab_file, 'r') as f:
-        words = [x.rstrip().split(' ')[0] for x in f.readlines()]
+    if args.vocab_file is not None:
+        with open(args.vocab_file, 'r') as f:
+            words = [x.rstrip().split(' ')[0] for x in f.readlines()]
     with open(args.vectors_file, 'r') as f:
         vectors = {}
+        words = []
         for line in f:
             vals = line.rstrip().split(' ')
+            # The vocabulary file gets created here, if one wasn't provided on script invocation.
+            if args.vocab_file is None:
+                words.append(vals[0])
             vectors[vals[0]] = [float(x) for x in vals[1:]]
 
     vocab_size = len(words)
@@ -27,7 +34,7 @@ def generate():
             continue
         W[vocab[word], :] = v
 
-    # normalize each word vector to unit variance
+    # normalize each word vector to unit length
     W_norm = np.zeros(W.shape)
     d = (np.sum(W ** 2, 1) ** (0.5))
     W_norm = (W.T / d).T
@@ -41,11 +48,11 @@ def distance(W, vocab, ivocab, input_term):
             if idx == 0:
                 vec_result = np.copy(W[vocab[term], :])
             else:
-                vec_result += W[vocab[term], :] 
+                vec_result += W[vocab[term], :]
         else:
             print('Word: %s  Out of dictionary!\n' % term)
             return
-    
+
     vec_norm = np.zeros(vec_result.shape)
     d = (np.sum(vec_result ** 2,) ** (0.5))
     vec_norm = (vec_result.T / d).T
@@ -65,12 +72,11 @@ def distance(W, vocab, ivocab, input_term):
 
 
 if __name__ == "__main__":
-    N = 100;          # number of closest words that will be shown
+    N = 100  # number of closest words that will be shown
     W, vocab, ivocab = generate()
     while True:
-        input_term = raw_input("\nEnter word or sentence (EXIT to break): ")
+        input_term = input("\nEnter word or sentence (EXIT to break): ")
         if input_term == 'EXIT':
             break
         else:
             distance(W, vocab, ivocab, input_term)
-
