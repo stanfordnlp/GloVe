@@ -53,6 +53,7 @@ int model = 2; // For text file output only. 0: concatenate word and context vec
 int checkpoint_every = 0; // checkpoint the model for every checkpoint_every iterations. Do nothing if checkpoint_every <= 0
 real eta = 0.05; // Initial learning rate
 real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremely sensitive to corpus, though may need adjustment for very small or very large corpora
+real grad_clip_value = 10.0; // Clipping parameter for gradient components. Values will be clipped to [-grad_clip_value, grad_clip_value] interval.
 real *W, *gradsq, *cost;
 long long num_lines, *lines_per_thread, vocab_size;
 char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
@@ -137,13 +138,12 @@ void *glove_thread(void *vid) {
         cost[id] += 0.5 * fdiff * diff; // weighted squared error
         
         /* Adaptive gradient updates */
-        fdiff *= eta; // for ease in calculating gradient
         real W_updates1_sum = 0;
         real W_updates2_sum = 0;
         for (b = 0; b < vector_size; b++) {
             // learning rate times gradient for word vectors
-            temp1 = fdiff * W[b + l2];
-            temp2 = fdiff * W[b + l1];
+            temp1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value) * eta;
+            temp2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value) * eta;
             // adaptive updates
             W_updates1[b] = temp1 / sqrt(gradsq[b + l1]);
             W_updates2[b] = temp2 / sqrt(gradsq[b + l2]);
@@ -393,6 +393,8 @@ int main(int argc, char **argv) {
         printf("\t\tParameter in exponent of weighting function; default 0.75\n");
         printf("\t-x-max <float>\n");
         printf("\t\tParameter specifying cutoff in weighting function; default 100.0\n");
+        printf("\t-grad-clip\n");
+        printf("\t\tGradient components clipping parameter. Values will be clipped to [-grad-clip, grad-clip] interval\n");
         printf("\t-binary <int>\n");
         printf("\t\tSave output in binary format (0: text, 1: binary, 2: both); default 0\n");
         printf("\t-model <int>\n");
@@ -425,6 +427,7 @@ int main(int argc, char **argv) {
         if ((i = find_arg((char *)"-alpha", argc, argv)) > 0) alpha = atof(argv[i + 1]);
         if ((i = find_arg((char *)"-x-max", argc, argv)) > 0) x_max = atof(argv[i + 1]);
         if ((i = find_arg((char *)"-eta", argc, argv)) > 0) eta = atof(argv[i + 1]);
+        if ((i = find_arg((char *)"-grad-clip", argc, argv)) > 0) grad_clip_value = atof(argv[i + 1]);
         if ((i = find_arg((char *)"-binary", argc, argv)) > 0) use_binary = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-model", argc, argv)) > 0) model = atoi(argv[i + 1]);
         if (model != 0 && model != 1) model = 2;
