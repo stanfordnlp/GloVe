@@ -1,7 +1,14 @@
 CC = gcc
 #For older gcc, use -O3 or -O2 instead of -Ofast
 # CFLAGS = -lm -pthread -Ofast -march=native -funroll-loops -Wno-unused-result
-CFLAGS = -lm -pthread -Ofast -march=native -funroll-loops -Wall -Wextra -Wpedantic
+
+# Use -Ofast with caution. It speeds up training, but the checks for NaN will not work
+# (-Ofast turns on --fast-math, which turns on -ffinite-math-only,
+# which assumes everything is NOT NaN or +-Inf, so checks for NaN always return false
+# see https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
+# CFLAGS = -lm -pthread -Ofast -march=native -funroll-loops -Wall -Wextra -Wpedantic
+
+CFLAGS = -lm -pthread -O3 -march=native -funroll-loops -Wall -Wextra -Wpedantic
 BUILDDIR := build
 SRCDIR := src
 
