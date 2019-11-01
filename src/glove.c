@@ -447,7 +447,7 @@ int main(int argc, char **argv) {
         if (fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); return 1;}
         while ((i = getc(fid)) != EOF) if (i == '\n') vocab_size++; // Count number of entries in vocab_file
         fclose(fid);
-
+        if (vocab_size == 0) {fprintf(stderr, "Unable to find any vocab entries in vocab file %s.\n", vocab_file); return 1;}
         result = train_glove();
         free(cost);
     }
