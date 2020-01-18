@@ -195,7 +195,7 @@ int save_params(int nb_iter) {
             sprintf(output_file,"%s.%03d.bin",save_W_file,nb_iter);
 
         fout = fopen(output_file,"wb");
-        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
+        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); free(word); return 1;}
         for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
         fclose(fout);
         if (save_gradsq > 0) {
@@ -205,7 +205,7 @@ int save_params(int nb_iter) {
                 sprintf(output_file_gsq,"%s.%03d.bin",save_gradsq_file,nb_iter);
 
             fgs = fopen(output_file_gsq,"wb");
-            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
+            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); free(word); return 1;}
             for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&gradsq[a], sizeof(real), 1,fgs);
             fclose(fgs);
         }
@@ -222,18 +222,18 @@ int save_params(int nb_iter) {
                 sprintf(output_file_gsq,"%s.%03d.txt",save_gradsq_file,nb_iter);
 
             fgs = fopen(output_file_gsq,"wb");
-            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); return 1;}
+            if (fgs == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_gradsq_file); free(word); return 1;}
         }
         fout = fopen(output_file,"wb");
-        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); return 1;}
+        if (fout == NULL) {fprintf(stderr, "Unable to open file %s.\n",save_W_file); free(word); return 1;}
         fid = fopen(vocab_file, "r");
         sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-        if (fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); return 1;}
+        if (fid == NULL) {fprintf(stderr, "Unable to open file %s.\n",vocab_file); free(word); return 1;}
         if (write_header) fprintf(fout, "%lld %d\n", vocab_size, vector_size);
         for (a = 0; a < vocab_size; a++) {
-            if (fscanf(fid,format,word) == 0) return 1;
+            if (fscanf(fid,format,word) == 0) {free(word); return 1;}
             // input vocab cannot contain special <unk> keyword
-            if (strcmp(word, "<unk>") == 0) return 1;
+            if (strcmp(word, "<unk>") == 0) {free(word); return 1;}
             fprintf(fout, "%s",word);
             if (model == 0) { // Save all parameters (including bias)
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
@@ -250,13 +250,13 @@ int save_params(int nb_iter) {
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fgs," %lf", gradsq[(vocab_size + a) * (vector_size + 1) + b]);
                 fprintf(fgs,"\n");
             }
-            if (fscanf(fid,format,word) == 0) return 1; // Eat irrelevant frequency entry
+            if (fscanf(fid,format,word) == 0) {free(word); return 1;} // Eat irrelevant frequency entry
         }
 
         if (use_unk_vec) {
             real* unk_vec = (real*)calloc((vector_size + 1), sizeof(real));
             real* unk_context = (real*)calloc((vector_size + 1), sizeof(real));
-            word = "<unk>";
+            strcpy(word, "<unk>");
 
             int num_rare_words = vocab_size < 100 ? vocab_size : 100;
 
@@ -286,6 +286,7 @@ int save_params(int nb_iter) {
         fclose(fout);
         if (save_gradsq > 0) fclose(fgs);
     }
+    free(word);
     return 0;
 }
 
@@ -339,8 +340,11 @@ int train_glove() {
         if (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0) {
             fprintf(stderr,"    saving itermediate parameters for iter %03d...", b+1);
             save_params_return_code = save_params(b+1);
-            if (save_params_return_code != 0)
+            if (save_params_return_code != 0) {
+                free(pt);
+                free(lines_per_thread);
                 return save_params_return_code;
+            }
             fprintf(stderr,"done.\n");
         }
 
@@ -444,10 +448,10 @@ int main(int argc, char **argv) {
         
         vocab_size = 0;
         fid = fopen(vocab_file, "r");
-        if (fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); return 1;}
+        if (fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); free(cost); return 1;}
         while ((i = getc(fid)) != EOF) if (i == '\n') vocab_size++; // Count number of entries in vocab_file
         fclose(fid);
-        if (vocab_size == 0) {fprintf(stderr, "Unable to find any vocab entries in vocab file %s.\n", vocab_file); return 1;}
+        if (vocab_size == 0) {fprintf(stderr, "Unable to find any vocab entries in vocab file %s.\n", vocab_file); free(cost); return 1;}
         result = train_glove();
         free(cost);
     }
@@ -455,5 +459,8 @@ int main(int argc, char **argv) {
     free(input_file);
     free(save_W_file);
     free(save_gradsq_file);
+    free(W);
+    free(gradsq);
+
     return result;
 }
