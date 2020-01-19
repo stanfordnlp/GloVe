@@ -247,6 +247,13 @@ int merge_write(CRECID new, CRECID *old, FILE *fout) {
     return 1; // Actually wrote to file
 }
 
+void free_fid(FILE **fid, const int num) {
+    int i;
+    for(i = 0; i < num; i++)
+        fclose(fid[i]);
+    free(fid);
+}
+
 /* Merge [num] sorted files of cooccurrence records */
 int merge_files(int num) {
     int i, size;
@@ -263,7 +270,7 @@ int merge_files(int num) {
     for (i = 0; i < num; i++) {
         sprintf(filename,"%s_%04d.bin",file_head,i);
         fid[i] = fopen(filename,"rb");
-        if (fid[i] == NULL) {fprintf(stderr, "Unable to open file %s.\n",filename); return 1;}
+        if (fid[i] == NULL) {fprintf(stderr, "Unable to open file %s.\n",filename); free_fid(fid, num); free(pq); return 1;}
         fread(&new, sizeof(CREC), 1, fid[i]);
         new.id = i;
         insert(pq,new,i+1);
@@ -301,16 +308,43 @@ int merge_files(int num) {
         remove(filename);
     }
     fprintf(stderr,"\n");
+    free_fid(fid, num);
+    free(pq);
     return 0;
+}
+
+void free_table(HASHREC **ht) {
+    int i;
+    HASHREC* current;
+    HASHREC* tmp;
+    for (i = 0; i < TSIZE; i++) {
+        current = ht[i];
+        while (current != NULL) {
+            tmp = current;
+            current = current->next;
+            free(tmp->word);
+            free(tmp);
+        }
+    }
+    free(ht);
+}
+
+void free_resources(HASHREC** vocab_hash, CREC *cr, long long *lookup, 
+                    long long *history, real *bigram_table) {
+    free_table(vocab_hash);
+    free(cr);
+    free(lookup);
+    free(history);
+    free(bigram_table);
 }
 
 /* Collect word-word cooccurrence counts from input stream */
 int get_cooccurrence() {
     int flag, x, y, fidcounter = 1;
-    long long a, j = 0, k, id, counter = 0, ind = 0, vocab_size, w1, w2, *lookup, *history;
+    long long a, j = 0, k, id, counter = 0, ind = 0, vocab_size, w1, w2, *lookup = NULL, *history = NULL;
     char format[20], filename[200], str[MAX_STRING_LENGTH + 1];
     FILE *fid, *foverflow;
-    real *bigram_table, r;
+    real *bigram_table = NULL, r;
     HASHREC *htmp, **vocab_hash = inithashtable();
     CREC *cr = malloc(sizeof(CREC) * (overflow_length + 1));
     history = malloc(sizeof(long long) * window_size);
@@ -326,7 +360,11 @@ int get_cooccurrence() {
     sprintf(format,"%%%ds %%lld", MAX_STRING_LENGTH); // Format to read from vocab file, which has (irrelevant) frequency data
     if (verbose > 1) fprintf(stderr, "Reading vocab from file \"%s\"...", vocab_file);
     fid = fopen(vocab_file,"r");
-    if (fid == NULL) {fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); return 1;}
+    if (fid == NULL) { 
+        fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); 
+        free_resources(vocab_hash, cr, lookup, history, bigram_table);
+        return 1;
+    }
     while (fscanf(fid, format, str, &id) != EOF) hashinsert(vocab_hash, str, ++j); // Here id is not used: inserting vocab words into hash table with their frequency rank, j
     fclose(fid);
     vocab_size = j;
@@ -337,6 +375,7 @@ int get_cooccurrence() {
     lookup = (long long *)calloc( vocab_size + 1, sizeof(long long) );
     if (lookup == NULL) {
         fprintf(stderr, "Couldn't allocate memory!");
+        free_resources(vocab_hash, cr, lookup, history, bigram_table);
         return 1;
     }
     lookup[0] = 1;
@@ -350,6 +389,7 @@ int get_cooccurrence() {
     bigram_table = (real *)calloc( lookup[a-1] , sizeof(real) );
     if (bigram_table == NULL) {
         fprintf(stderr, "Couldn't allocate memory!");
+        free_resources(vocab_hash, cr, lookup, history, bigram_table);
         return 1;
     }
     
@@ -441,10 +481,7 @@ int get_cooccurrence() {
     if (verbose > 1) fprintf(stderr,"%d files in total.\n",fidcounter + 1);
     fclose(fid);
     fclose(foverflow);
-    free(cr);
-    free(lookup);
-    free(bigram_table);
-    free(vocab_hash);
+    free_resources(vocab_hash, cr, lookup, history, bigram_table);
     return merge_files(fidcounter + 1); // Merge the sorted temporary files
 }
 
@@ -493,6 +530,8 @@ int main(int argc, char **argv) {
 
         printf("\nExample usage:\n");
         printf("./cooccur -verbose 2 -symmetric 0 -window-size 10 -vocab-file vocab.txt -memory 8.0 -overflow-file tempoverflow < corpus.txt > cooccurrences.bin\n\n");
+        free(vocab_file);
+        free(file_head);
         return 0;
     }
 
@@ -517,6 +556,9 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-max-product", argc, argv)) > 0) max_product = atoll(argv[i + 1]);
     if ((i = find_arg((char *)"-overflow-length", argc, argv)) > 0) overflow_length = atoll(argv[i + 1]);
     
-    return get_cooccurrence();
+    const int returned_value = get_cooccurrence();
+    free(vocab_file);
+    free(file_head);
+    return returned_value;
 }
 
