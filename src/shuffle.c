@@ -77,6 +77,13 @@ void shuffle(CREC *array, long n) {
     }
 }
 
+void free_fid(FILE **fid, int num) {
+    int i;
+    for(i = 0; i < num; i++)
+        fclose(fid[i]);
+    free(fid);
+}
+
 /* Merge shuffled temporary files; doesn't necessarily produce a perfect shuffle, but good enough */
 int shuffle_merge(int num) {
     long i, j, k, l = 0;
@@ -92,6 +99,8 @@ int shuffle_merge(int num) {
         fid[fidcounter] = fopen(filename, "rb");
         if (fid[fidcounter] == NULL) {
             fprintf(stderr, "Unable to open file %s.\n",filename);
+            free(array);
+            free_fid(fid, num);
             return 1;
         }
     }
@@ -122,6 +131,7 @@ int shuffle_merge(int num) {
     }
     fprintf(stderr, "\n\n");
     free(array);
+    free(fid);
     return 0;
 }
 
@@ -140,6 +150,7 @@ int shuffle_by_chunks() {
     fid = fopen(filename,"w");
     if (fid == NULL) {
         fprintf(stderr, "Unable to open file %s.\n",filename);
+        free(array);
         return 1;
     }
     if (verbose > 1) fprintf(stderr, "Shuffling by chunks: processed 0 lines.");
@@ -156,6 +167,7 @@ int shuffle_by_chunks() {
             fid = fopen(filename,"w");
             if (fid == NULL) {
                 fprintf(stderr, "Unable to open file %s.\n",filename);
+                free(array);
                 return 1;
             }
             i = 0;
@@ -207,6 +219,7 @@ int main(int argc, char **argv) {
         
         printf("\nExample usage: (assuming 'cooccurrence.bin' has been produced by 'coccur')\n");
         printf("./shuffle -verbose 2 -memory 8.0 < cooccurrence.bin > cooccurrence.shuf.bin\n");
+        free(file_head);
         return 0;
     }
    
@@ -216,6 +229,8 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
     array_size = (long long) (0.95 * (real)memory_limit * 1073741824/(sizeof(CREC)));
     if ((i = find_arg((char *)"-array-size", argc, argv)) > 0) array_size = atoll(argv[i + 1]);
-    return shuffle_by_chunks();
+    const int returned_value = shuffle_by_chunks();
+    free(file_head);
+    return returned_value;
 }
 
