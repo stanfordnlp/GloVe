@@ -164,6 +164,22 @@ int get_word(char *word, FILE *fin) {
     return 0;
 }
 
+void free_table(HASHREC **ht) {
+    int i;
+    HASHREC* current;
+    HASHREC* tmp;
+    for (i = 0; i < TSIZE; i++) {
+        current = ht[i];
+        while (current != NULL) {
+            tmp = current;
+            current = current->next;
+            free(tmp->word);
+            free(tmp);
+        }
+    }
+    free(ht);
+}
+
 int get_counts() {
     long long i = 0, j = 0, vocab_size = 12500;
     // char format[20];
@@ -182,6 +198,7 @@ int get_counts() {
         if (nl) continue; // just a newline marker or feof
         if (strcmp(str, "<unk>") == 0) {
             fprintf(stderr, "\nError, <unk> vector found in corpus.\nPlease remove <unk>s from your corpus (e.g. cat text8 | sed -e 's/<unk>/<raw_unk>/g' > text8.new)");
+            free_table(vocab_hash);
             return 1;
         }
         hashinsert(vocab_hash, str);
@@ -220,6 +237,8 @@ int get_counts() {
     
     if (i == max_vocab && max_vocab < j) if (verbose > 0) fprintf(stderr, "Truncating vocabulary at size %lld.\n", max_vocab);
     fprintf(stderr, "Using vocabulary of size %lld.\n\n", i);
+    free_table(vocab_hash);
+    free(vocab);
     return 0;
 }
 
