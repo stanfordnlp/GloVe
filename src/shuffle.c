@@ -77,10 +77,12 @@ void shuffle(CREC *array, long n) {
     }
 }
 
-void free_fid(FILE **fid, int num) {
+void free_fid(FILE **fid, const int num) {
     int i;
-    for(i = 0; i < num; i++)
-        fclose(fid[i]);
+    for(i = 0; i < num; i++) {
+        if(fid[i] != NULL)
+            fclose(fid[i]);
+    }
     free(fid);
 }
 
@@ -93,7 +95,7 @@ int shuffle_merge(int num) {
     FILE **fid, *fout = stdout;
     
     array = malloc(sizeof(CREC) * array_size);
-    fid = malloc(sizeof(FILE) * num);
+    fid = calloc(num, sizeof(FILE));
     for (fidcounter = 0; fidcounter < num; fidcounter++) { //num = number of temporary files to merge
         sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
         fid[fidcounter] = fopen(filename, "rb");
