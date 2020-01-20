@@ -30,6 +30,11 @@ WINDOW_SIZE=15
 BINARY=2
 NUM_THREADS=8
 X_MAX=10
+if hash python 2>/dev/null; then
+    PYTHON=python
+else
+    PYTHON=python3
+fi
 
 echo
 echo "$ $BUILDDIR/vocab_count -min-count $VOCAB_MIN_COUNT -verbose $VERBOSE < $CORPUS > $VOCAB_FILE"
@@ -46,7 +51,7 @@ if [ "$CORPUS" = 'text8' ]; then
    elif [ "$1" = 'octave' ]; then
        octave < ./eval/octave/read_and_evaluate_octave.m 1>&2
    else
-       echo "$ python eval/python/evaluate.py"
-       python eval/python/evaluate.py
+       echo "$ $PYTHON eval/python/evaluate.py"
+       $PYTHON eval/python/evaluate.py
    fi
 fi
