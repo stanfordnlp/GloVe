@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define MAX_STRING_LENGTH 1000
 
@@ -37,6 +38,7 @@ typedef struct cooccur_rec {
 } CREC;
 
 int verbose = 2; // 0, 1, or 2
+int seed = 0;
 long long array_size = 2000000; // size of chunks to shuffle individually
 char *file_head; // temporary file string
 real memory_limit = 2.0; // soft limit, in gigabytes
@@ -127,6 +129,11 @@ int shuffle_merge(int num) {
 
 /* Shuffle large input stream by splitting into chunks */
 int shuffle_by_chunks() {
+    if (seed == 0) {
+        seed = time(0);
+    }
+    fprintf(stderr, "Using random seed %d\n", seed);
+    srand(seed);
     long i = 0, l = 0;
     int fidcounter = 0;
     char filename[MAX_STRING_LENGTH];
@@ -204,7 +211,8 @@ int main(int argc, char **argv) {
         printf("\t\tLimit to length <int> the buffer which stores chunks of data to shuffle before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'.\n");
         printf("\t-temp-file <file>\n");
         printf("\t\tFilename, excluding extension, for temporary files; default temp_shuffle\n");
-        
+        printf("\t-seed <int>\n");
+        printf("\t\tRandom seed to use.  If not set, will be randomized using current time.");
         printf("\nExample usage: (assuming 'cooccurrence.bin' has been produced by 'coccur')\n");
         printf("./shuffle -verbose 2 -memory 8.0 < cooccurrence.bin > cooccurrence.shuf.bin\n");
         return 0;
@@ -216,6 +224,7 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
     array_size = (long long) (0.95 * (real)memory_limit * 1073741824/(sizeof(CREC)));
     if ((i = find_arg((char *)"-array-size", argc, argv)) > 0) array_size = atoll(argv[i + 1]);
+    if ((i = find_arg((char *)"-seed", argc, argv)) > 0) seed = atoi(argv[i + 1]);
     return shuffle_by_chunks();
 }
 

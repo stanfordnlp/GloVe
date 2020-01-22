@@ -43,6 +43,7 @@ typedef struct cooccur_rec {
 
 int write_header=0; //0=no, 1=yes; writes vocab_size/vector_size as first line for use with some libraries, such as gensim.
 int verbose = 2; // 0, 1, or 2
+int seed = 0;
 int use_unk_vec = 1; // 0 or 1
 int num_threads = 8; // pthreads
 int num_iter = 25; // Number of full passes through cooccurrence matrix
@@ -64,6 +65,11 @@ int scmp( char *s1, char *s2 ) {
 }
 
 void initialize_parameters() {
+    if (seed == 0) {
+        seed = time(0);
+    }
+    fprintf(stderr, "Using random seed %d\n", seed);
+    srand(seed);
     long long a, b;
     vector_size++; // Temporarily increment to allocate space for bias
 
@@ -412,6 +418,8 @@ int main(int argc, char **argv) {
         printf("\t\tSave accumulated squared gradients; default 0 (off); ignored if gradsq-file is specified\n");
         printf("\t-checkpoint-every <int>\n");
         printf("\t\tCheckpoint a  model every <int> iterations; default 0 (off)\n");
+        printf("\t-seed <int>\n");
+        printf("\t\tRandom seed to use.  If not set, will be randomized using current time.");
         printf("\nExample usage:\n");
         printf("./glove -input-file cooccurrence.shuf.bin -vocab-file vocab.txt -save-file vectors -gradsq-file gradsq -verbose 2 -vector-size 100 -threads 16 -alpha 0.75 -x-max 100.0 -eta 0.05 -binary 2 -model 2\n\n");
         result = 0;
@@ -441,6 +449,7 @@ int main(int argc, char **argv) {
         if ((i = find_arg((char *)"-input-file", argc, argv)) > 0) strcpy(input_file, argv[i + 1]);
         else strcpy(input_file, (char *)"cooccurrence.shuf.bin");
         if ((i = find_arg((char *)"-checkpoint-every", argc, argv)) > 0) checkpoint_every = atoi(argv[i + 1]);
+        if ((i = find_arg((char *)"-seed", argc, argv)) > 0) seed = atoi(argv[i + 1]);
         
         vocab_size = 0;
         fid = fopen(vocab_file, "r");
