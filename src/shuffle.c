@@ -79,7 +79,7 @@ int shuffle_merge(int num) {
         sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
         fid[fidcounter] = fopen(filename, "rb");
         if (fid[fidcounter] == NULL) {
-            fprintf(stderr, "Unable to open file %s.\n",filename);
+            log_file_loading_error("temp file", filename);
             free(array);
             free_fid(fid, num);
             return 1;
@@ -135,7 +135,7 @@ int shuffle_by_chunks() {
     sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
     fid = fopen(filename,"w");
     if (fid == NULL) {
-        fprintf(stderr, "Unable to open file %s.\n",filename);
+        log_file_loading_error("file", filename);
         free(array);
         return 1;
     }
@@ -152,7 +152,7 @@ int shuffle_by_chunks() {
             sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
             fid = fopen(filename,"w");
             if (fid == NULL) {
-                fprintf(stderr, "Unable to open file %s.\n",filename);
+                log_file_loading_error("file", filename);
                 free(array);
                 return 1;
             }

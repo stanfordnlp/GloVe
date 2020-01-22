@@ -176,7 +176,7 @@ int merge_files(int num) {
     for (i = 0; i < num; i++) {
         sprintf(filename,"%s_%04d.bin",file_head,i);
         fid[i] = fopen(filename,"rb");
-        if (fid[i] == NULL) {fprintf(stderr, "Unable to open file %s.\n",filename); free_fid(fid, num); free(pq); return 1;}
+        if (fid[i] == NULL) {log_file_loading_error("file", filename); free_fid(fid, num); free(pq); return 1;}
         fread(&new, sizeof(CREC), 1, fid[i]);
         new.id = i;
         insert(pq,new,i+1);
@@ -251,7 +251,7 @@ int get_cooccurrence() {
     if (verbose > 1) fprintf(stderr, "Reading vocab from file \"%s\"...", vocab_file);
     fid = fopen(vocab_file,"r");
     if (fid == NULL) { 
-        fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); 
+        log_file_loading_error("vocab file", vocab_file);
         free_resources(vocab_hash, cr, lookup, history, bigram_table);
         return 1;
     }

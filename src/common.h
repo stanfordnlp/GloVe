@@ -58,5 +58,8 @@ void free_table(HASHREC **ht);
 int find_arg(char *str, int argc, char **argv);
 void free_fid(FILE **fid, const int num);
 
+// logs errors when loading files.  call after a failed load
+int log_file_loading_error(char *file_description, char *file_name);
+
 #endif /* COMMON_H */
 

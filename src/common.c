@@ -26,6 +26,7 @@
 //    http://nlp.stanford.edu/projects/glove/
 
 #include "common.h"
+#include <errno.h>
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -134,3 +135,10 @@ void free_fid(FILE **fid, const int num) {
     free(fid);
 }
 
+
+int log_file_loading_error(char *file_description, char *file_name) {
+    fprintf(stderr, "Unable to open %s %s.\n", file_description, file_name);
+    fprintf(stderr, "Errno: %d\n", errno);
+    fprintf(stderr, "Error description: %s\n", strerror(errno));
+    return errno;
+}
