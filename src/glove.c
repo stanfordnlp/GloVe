@@ -21,7 +21,6 @@
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,17 +28,9 @@
 #include <math.h>
 #include <pthread.h>
 #include <time.h>
+#include "common.h"
 
 #define _FILE_OFFSET_BITS 64
-#define MAX_STRING_LENGTH 1000
-
-typedef double real;
-
-typedef struct cooccur_rec {
-    int word1;
-    int word2;
-    real val;
-} CREC;
 
 int write_header=0; //0=no, 1=yes; writes vocab_size/vector_size as first line for use with some libraries, such as gensim.
 int verbose = 2; // 0, 1, or 2
@@ -58,12 +49,6 @@ real grad_clip_value = 100.0; // Clipping parameter for gradient components. Val
 real *W, *gradsq, *cost;
 long long num_lines, *lines_per_thread, vocab_size;
 char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
-
-/* Efficient string comparison */
-int scmp( char *s1, char *s2 ) {
-    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
-    return(*s1 - *s2);
-}
 
 void initialize_parameters() {
     if (seed == 0) {
@@ -353,25 +338,10 @@ int train_glove() {
             }
             fprintf(stderr,"done.\n");
         }
-
     }
     free(pt);
     free(lines_per_thread);
     return save_params(0);
-}
-
-int find_arg(char *str, int argc, char **argv) {
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (!scmp(str, argv[i])) {
-            if (i == argc - 1) {
-                printf("No argument given for %s\n", str);
-                exit(1);
-            }
-            return i;
-        }
-    }
-    return -1;
 }
 
 int main(int argc, char **argv) {

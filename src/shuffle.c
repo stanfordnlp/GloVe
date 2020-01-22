@@ -22,33 +22,19 @@
 //    http://nlp.stanford.edu/projects/glove/
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
+#include "common.h"
 
-#define MAX_STRING_LENGTH 1000
 
 static const long LRAND_MAX = ((long) RAND_MAX + 2) * (long)RAND_MAX;
-typedef double real;
-
-typedef struct cooccur_rec {
-    int word1;
-    int word2;
-    real val;
-} CREC;
 
 int verbose = 2; // 0, 1, or 2
 int seed = 0;
 long long array_size = 2000000; // size of chunks to shuffle individually
 char *file_head; // temporary file string
 real memory_limit = 2.0; // soft limit, in gigabytes
-
-/* Efficient string comparison */
-int scmp( char *s1, char *s2 ) {
-    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
-    return(*s1 - *s2);
-}
-
 
 /* Generate uniformly distributed random long ints */
 static long rand_long(long n) {
@@ -77,15 +63,6 @@ void shuffle(CREC *array, long n) {
         array[j] = array[i];
         array[i] = tmp;
     }
-}
-
-void free_fid(FILE **fid, const int num) {
-    int i;
-    for(i = 0; i < num; i++) {
-        if(fid[i] != NULL)
-            fclose(fid[i]);
-    }
-    free(fid);
 }
 
 /* Merge shuffled temporary files; doesn't necessarily produce a perfect shuffle, but good enough */
@@ -193,20 +170,6 @@ int shuffle_by_chunks() {
     fclose(fid);
     free(array);
     return shuffle_merge(fidcounter + 1); // Merge and shuffle together temporary files
-}
-
-int find_arg(char *str, int argc, char **argv) {
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (!scmp(str, argv[i])) {
-            if (i == argc - 1) {
-                printf("No argument given for %s\n", str);
-                exit(1);
-            }
-            return i;
-        }
-    }
-    return -1;
 }
 
 int main(int argc, char **argv) {
