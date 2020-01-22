@@ -23,24 +23,8 @@
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
-
-#define MAX_STRING_LENGTH 1000
-#define TSIZE 1048576
-#define SEED 1159241
-
-#define HASHFN bitwisehash
-
-typedef double real;
-
-typedef struct cooccur_rec {
-    int word1;
-    int word2;
-    real val;
-} CREC;
+#include "common.h"
 
 typedef struct cooccur_rec_id {
     int word1;
@@ -48,12 +32,6 @@ typedef struct cooccur_rec_id {
     real val;
     int id;
 } CRECID;
-
-typedef struct hashrec {
-    char        *word;
-    long long id;
-    struct hashrec *next;
-} HASHREC;
 
 int verbose = 2; // 0, 1, or 2
 long long max_product; // Cutoff for product of word frequency ranks below which cooccurrence counts will be stored in a compressed full array
@@ -63,32 +41,6 @@ int symmetric = 1; // 0: asymmetric, 1: symmetric
 real memory_limit = 3; // soft limit, in gigabytes, used to estimate optimal array sizes
 int distance_weighting = 1; // Flag to control the distance weighting of cooccurrence counts
 char *vocab_file, *file_head;
-
-/* Efficient string comparison */
-int scmp( char *s1, char *s2 ) {
-    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
-    return(*s1 - *s2);
-}
-
-/* Move-to-front hashing and hash function from Hugh Williams, http://www.seg.rmit.edu.au/code/zwh-ipl/ */
-
-/* Simple bitwise hash function */
-unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
-    char c;
-    unsigned int h;
-    h = seed;
-    for (; (c =* word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
-    return((unsigned int)((h&0x7fffffff) % tsize));
-}
-
-/* Create hash table, initialise pointers to NULL */
-HASHREC ** inithashtable() {
-    int i;
-    HASHREC **ht;
-    ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
-    for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
-    return(ht);
-}
 
 /* Search hash table for given string, return record if found, else NULL */
 HASHREC *hashsearch(HASHREC **ht, char *w) {
@@ -112,55 +64,13 @@ void hashinsert(HASHREC **ht, char *w, long long id) {
         htmp = (HASHREC *) malloc(sizeof(HASHREC));
         htmp->word = (char *) malloc(strlen(w) + 1);
         strcpy(htmp->word, w);
-        htmp->id = id;
+        htmp->num = id;
         htmp->next = NULL;
         if (hprv == NULL) ht[hval] = htmp;
         else hprv->next = htmp;
     }
     else fprintf(stderr, "Error, duplicate entry located: %s.\n",htmp->word);
     return;
-}
-
-/* Read word from input stream. Return 1 when encounter '\n' or EOF (but separate from word), 0 otherwise.
-   Words can be separated by space(s), tab(s), or newline(s). Carriage return characters are just ignored.
-   (Okay for Windows, but not for Mac OS 9-. Ignored even if by themselves or in words.)
-   A newline is taken as indicating a new document (contexts won't cross newline).
-   Argument word array is assumed to be of size MAX_STRING_LENGTH.
-   words will be truncated if too long. They are truncated with some care so that they
-   cannot truncate in the middle of a utf-8 character, but
-   still little to no harm will be done for other encodings like iso-8859-1.
-   (This function appears identically copied in vocab_count.c and cooccur.c.)
- */
-int get_word(char *word, FILE *fin) {
-    int i = 0, ch;
-    for ( ; ; ) {
-        ch = fgetc(fin);
-        if (ch == '\r') continue;
-        if (i == 0 && ((ch == '\n') || (ch == EOF))) {
-            word[i] = 0;
-            return 1;
-        }
-        if (i == 0 && ((ch == ' ') || (ch == '\t'))) continue; // skip leading space
-        if ((ch == EOF) || (ch == ' ') || (ch == '\t') || (ch == '\n')) {
-            if (ch == '\n') ungetc(ch, fin); // return the newline next time as document ender
-            break;
-        }
-        if (i < MAX_STRING_LENGTH - 1)
-          word[i++] = ch; // don't allow words to exceed MAX_STRING_LENGTH
-    }
-    word[i] = 0; //null terminate
-    // avoid truncation destroying a multibyte UTF-8 char except if only thing on line (so the i > x tests won't overwrite word[0])
-    // see https://en.wikipedia.org/wiki/UTF-8#Description
-    if (i == MAX_STRING_LENGTH - 1 && (word[i-1] & 0x80) == 0x80) {
-        if ((word[i-1] & 0xC0) == 0xC0) {
-            word[i-1] = '\0';
-        } else if (i > 2 && (word[i-2] & 0xE0) == 0xE0) {
-            word[i-2] = '\0';
-        } else if (i > 3 && (word[i-3] & 0xF8) == 0xF0) {
-            word[i-3] = '\0';
-        }
-    }
-    return 0;
 }
 
 /* Write sorted chunk of cooccurrence records to file, accumulating duplicate entries */
@@ -247,15 +157,6 @@ int merge_write(CRECID new, CRECID *old, FILE *fout) {
     return 1; // Actually wrote to file
 }
 
-void free_fid(FILE **fid, const int num) {
-    int i;
-    for(i = 0; i < num; i++) {
-        if(fid[i] != NULL)
-            fclose(fid[i]);
-    }
-    free(fid);
-}
-
 /* Merge [num] sorted files of cooccurrence records */
 int merge_files(int num) {
     int i, size;
@@ -313,22 +214,6 @@ int merge_files(int num) {
     free_fid(fid, num);
     free(pq);
     return 0;
-}
-
-void free_table(HASHREC **ht) {
-    int i;
-    HASHREC* current;
-    HASHREC* tmp;
-    for (i = 0; i < TSIZE; i++) {
-        current = ht[i];
-        while (current != NULL) {
-            tmp = current;
-            current = current->next;
-            free(tmp->word);
-            free(tmp);
-        }
-    }
-    free(ht);
 }
 
 void free_resources(HASHREC** vocab_hash, CREC *cr, long long *lookup, 
@@ -431,7 +316,7 @@ int get_cooccurrence() {
             if (verbose > 2) fprintf(stderr, "Not getting coocurs as word not in vocab\n");
             continue; // Skip out-of-vocabulary words
         }
-        w2 = htmp->id; // Target word (frequency rank)
+        w2 = htmp->num; // Target word (frequency rank)
         for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
             w1 = history[k % window_size]; // Context word (frequency rank)
             if (verbose > 2) fprintf(stderr, "Adding cooccur between words %lld and %lld.\n", w1, w2);
@@ -485,20 +370,6 @@ int get_cooccurrence() {
     fclose(foverflow);
     free_resources(vocab_hash, cr, lookup, history, bigram_table);
     return merge_files(fidcounter + 1); // Merge the sorted temporary files
-}
-
-int find_arg(char *str, int argc, char **argv) {
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (!scmp(str, argv[i])) {
-            if (i == argc - 1) {
-                printf("No argument given for %s\n", str);
-                exit(1);
-            }
-            return i;
-        }
-    }
-    return -1;
 }
 
 int main(int argc, char **argv) {

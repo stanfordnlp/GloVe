@@ -24,37 +24,16 @@
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define MAX_STRING_LENGTH 1000
-#define TSIZE   1048576
-#define SEED    1159241
-
-#define HASHFN  bitwisehash
+#include "common.h"
 
 typedef struct vocabulary {
     char *word;
     long long count;
 } VOCAB;
 
-typedef struct hashrec {
-    char *word;
-    long long count;
-    struct hashrec *next;
-} HASHREC;
-
 int verbose = 2; // 0, 1, or 2
 long long min_count = 1; // min occurrences for inclusion in vocab
 long long max_vocab = 0; // max_vocab = 0 for no limit
-
-
-/* Efficient string comparison */
-int scmp( char *s1, char *s2 ) {
-    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
-    return *s1 - *s2;
-}
 
 
 /* Vocab frequency comparison; break ties alphabetically */
@@ -72,26 +51,6 @@ int CompareVocab(const void *a, const void *b) {
     else return 0;
 }
 
-/* Move-to-front hashing and hash function from Hugh Williams, http://www.seg.rmit.edu.au/code/zwh-ipl/ */
-
-/* Simple bitwise hash function */
-unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
-    char c;
-    unsigned int h;
-    h = seed;
-    for ( ; (c = *word) != '\0'; word++) h ^= ((h << 5) + c + (h >> 2));
-    return (unsigned int)((h & 0x7fffffff) % tsize);
-}
-
-/* Create hash table, initialise pointers to NULL */
-HASHREC ** inithashtable() {
-    int i;
-    HASHREC **ht;
-    ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
-    for (i = 0; i < TSIZE; i++) ht[i] = (HASHREC *) NULL;
-    return ht;
-}
-
 /* Search hash table for given string, insert if not found */
 void hashinsert(HASHREC **ht, char *w) {
     HASHREC     *htmp, *hprv;
@@ -102,7 +61,7 @@ void hashinsert(HASHREC **ht, char *w) {
         htmp = (HASHREC *) malloc( sizeof(HASHREC) );
         htmp->word = (char *) malloc( strlen(w) + 1 );
         strcpy(htmp->word, w);
-        htmp->count = 1;
+        htmp->num = 1;
         htmp->next = NULL;
         if ( hprv==NULL )
             ht[hval] = htmp;
@@ -111,7 +70,7 @@ void hashinsert(HASHREC **ht, char *w) {
     }
     else {
         /* new records are not moved to front */
-        htmp->count++;
+        htmp->num++;
         if (hprv != NULL) {
             /* move to front on access */
             hprv->next = htmp->next;
@@ -120,64 +79,6 @@ void hashinsert(HASHREC **ht, char *w) {
         }
     }
     return;
-}
-
-/* Read word from input stream. Return 1 when encounter '\n' or EOF (but separate from word), 0 otherwise.
-   Words can be separated by space(s), tab(s), or newline(s). Carriage return characters are just ignored.
-   (Okay for Windows, but not for Mac OS 9-. Ignored even if by themselves or in words.)
-   A newline is taken as indicating a new document (contexts won't cross newline).
-   Argument word array is assumed to be of size MAX_STRING_LENGTH.
-   words will be truncated if too long. They are truncated with some care so that they
-   cannot truncate in the middle of a utf-8 character, but
-   still little to no harm will be done for other encodings like iso-8859-1.
-   (This function appears identically copied in vocab_count.c and cooccur.c.)
- */
-int get_word(char *word, FILE *fin) {
-    int i = 0, ch;
-    for ( ; ; ) {
-        ch = fgetc(fin);
-        if (ch == '\r') continue;
-        if (i == 0 && ((ch == '\n') || (ch == EOF))) {
-            word[i] = 0;
-            return 1;
-        }
-        if (i == 0 && ((ch == ' ') || (ch == '\t'))) continue; // skip leading space
-        if ((ch == EOF) || (ch == ' ') || (ch == '\t') || (ch == '\n')) {
-            if (ch == '\n') ungetc(ch, fin); // return the newline next time as document ender
-            break;
-        }
-        if (i < MAX_STRING_LENGTH - 1)
-          word[i++] = ch; // don't allow words to exceed MAX_STRING_LENGTH
-    }
-    word[i] = 0; //null terminate
-    // avoid truncation destroying a multibyte UTF-8 char except if only thing on line (so the i > x tests won't overwrite word[0])
-    // see https://en.wikipedia.org/wiki/UTF-8#Description
-    if (i == MAX_STRING_LENGTH - 1 && (word[i-1] & 0x80) == 0x80) {
-        if ((word[i-1] & 0xC0) == 0xC0) {
-            word[i-1] = '\0';
-        } else if (i > 2 && (word[i-2] & 0xE0) == 0xE0) {
-            word[i-2] = '\0';
-        } else if (i > 3 && (word[i-3] & 0xF8) == 0xF0) {
-            word[i-3] = '\0';
-        }
-    }
-    return 0;
-}
-
-void free_table(HASHREC **ht) {
-    int i;
-    HASHREC* current;
-    HASHREC* tmp;
-    for (i = 0; i < TSIZE; i++) {
-        current = ht[i];
-        while (current != NULL) {
-            tmp = current;
-            current = current->next;
-            free(tmp->word);
-            free(tmp);
-        }
-    }
-    free(ht);
 }
 
 int get_counts() {
@@ -210,7 +111,7 @@ int get_counts() {
         htmp = vocab_hash[i];
         while (htmp != NULL) {
             vocab[j].word = htmp->word;
-            vocab[j].count = htmp->count;
+            vocab[j].count = htmp->num;
             j++;
             if (j>=vocab_size) {
                 vocab_size += 2500;
@@ -240,20 +141,6 @@ int get_counts() {
     free_table(vocab_hash);
     free(vocab);
     return 0;
-}
-
-int find_arg(char *str, int argc, char **argv) {
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (!scmp(str, argv[i])) {
-            if (i == argc - 1) {
-                printf("No argument given for %s\n", str);
-                exit(1);
-            }
-            return i;
-        }
-    }
-    return -1;
 }
 
 int main(int argc, char **argv) {
