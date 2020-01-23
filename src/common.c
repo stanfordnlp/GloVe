@@ -25,8 +25,10 @@
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
-#include "common.h"
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include "common.h"
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
