@@ -29,8 +29,6 @@
 //    http://nlp.stanford.edu/projects/glove/
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define MAX_STRING_LENGTH 1000
 #define TSIZE 1048576
