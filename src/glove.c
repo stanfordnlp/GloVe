@@ -103,11 +103,24 @@ void *glove_thread(void *vid) {
     real diff, fdiff, temp1, temp2;
     FILE *fin;
     fin = fopen(input_file, "rb");
+    if (fin == NULL) {
+        fprintf(stderr,"Error opening the FD for the file %s\n", input_file);
+        pthread_exit(NULL);
+    }    
     fseeko(fin, (num_lines / num_threads * id) * (sizeof(CREC)), SEEK_SET); //Threads spaced roughly equally throughout file
     cost[id] = 0;
     
     real* W_updates1 = (real*)malloc(vector_size * sizeof(real));
+    if (NULL == W_updates1){
+        fclose(fin);
+        pthread_exit(NULL);
+    }
     real* W_updates2 = (real*)malloc(vector_size * sizeof(real));
+        if (NULL == W_updates1){
+        fclose(fin);
+        free(W_updates1);
+        pthread_exit(NULL);
+    }
     for (a = 0; a < lines_per_thread[id]; a++) {
         fread(&cr, sizeof(CREC), 1, fin);
         if (feof(fin)) break;
@@ -180,6 +193,9 @@ int save_params(int nb_iter) {
     char format[20];
     char output_file[MAX_STRING_LENGTH+20], output_file_gsq[MAX_STRING_LENGTH+20];
     char *word = malloc(sizeof(char) * MAX_STRING_LENGTH + 1);
+    if (NULL == word) {
+        return 1;
+    }
     FILE *fid, *fout, *fgs;
     
     if (use_binary > 0) { // Save parameters in binary file
@@ -222,12 +238,12 @@ int save_params(int nb_iter) {
         if (fout == NULL) {log_file_loading_error("weights file", save_W_file); free(word); return 1;}
         fid = fopen(vocab_file, "r");
         sprintf(format,"%%%ds",MAX_STRING_LENGTH);
-        if (fid == NULL) {log_file_loading_error("vocab file", vocab_file); free(word); return 1;}
+        if (fid == NULL) {log_file_loading_error("vocab file", vocab_file); free(word); fclose(fout); return 1;}
         if (write_header) fprintf(fout, "%lld %d\n", vocab_size, vector_size);
         for (a = 0; a < vocab_size; a++) {
-            if (fscanf(fid,format,word) == 0) {free(word); return 1;}
+            if (fscanf(fid,format,word) == 0) {free(word); fclose(fid); fclose(fout); return 1;}
             // input vocab cannot contain special <unk> keyword
-            if (strcmp(word, "<unk>") == 0) {free(word); return 1;}
+            if (strcmp(word, "<unk>") == 0) {free(word); fclose(fid); fclose(fout);  return 1;}
             fprintf(fout, "%s",word);
             if (model == 0) { // Save all parameters (including bias)
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
@@ -244,7 +260,13 @@ int save_params(int nb_iter) {
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fgs," %lf", gradsq[(vocab_size + a) * (vector_size + 1) + b]);
                 fprintf(fgs,"\n");
             }
-            if (fscanf(fid,format,word) == 0) {free(word); return 1;} // Eat irrelevant frequency entry
+            if (fscanf(fid,format,word) == 0) {
+                // Eat irrelevant frequency entry
+                fclose(fout);
+                fclose(fid);
+                free(word); 
+                return 1;
+                } 
         }
 
         if (use_unk_vec) {
