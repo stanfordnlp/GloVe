@@ -104,9 +104,10 @@ void *glove_thread(void *vid) {
     FILE *fin;
     fin = fopen(input_file, "rb");
     if (fin == NULL) {
-        fprintf(stderr,"Error opening the FD for the file %s\n", input_file);
+        // TODO: exit all the threads or somehow mark that glove failed
+        log_file_loading_error("input file", input_file);
         pthread_exit(NULL);
-    }    
+    }
     fseeko(fin, (num_lines / num_threads * id) * (sizeof(CREC)), SEEK_SET); //Threads spaced roughly equally throughout file
     cost[id] = 0;
     
