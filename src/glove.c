@@ -48,7 +48,10 @@ real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremel
 real grad_clip_value = 100.0; // Clipping parameter for gradient components. Values will be clipped to [-grad_clip_value, grad_clip_value] interval.
 real *W, *gradsq, *cost;
 long long num_lines, *lines_per_thread, vocab_size;
-char *vocab_file, *input_file, *save_W_file, *save_gradsq_file;
+char vocab_file[MAX_STRING_LENGTH];
+char input_file[MAX_STRING_LENGTH];
+char save_W_file[MAX_STRING_LENGTH];
+char save_gradsq_file[MAX_STRING_LENGTH];
 
 void initialize_parameters() {
     if (seed == 0) {
@@ -175,7 +178,7 @@ int save_params(int nb_iter) {
 
     long long a, b;
     char format[20];
-    char output_file[MAX_STRING_LENGTH], output_file_gsq[MAX_STRING_LENGTH];
+    char output_file[MAX_STRING_LENGTH+20], output_file_gsq[MAX_STRING_LENGTH+20];
     char *word = malloc(sizeof(char) * MAX_STRING_LENGTH + 1);
     FILE *fid, *fout, *fgs;
     
@@ -347,10 +350,6 @@ int train_glove() {
 int main(int argc, char **argv) {
     int i;
     FILE *fid;
-    vocab_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
-    input_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
-    save_W_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
-    save_gradsq_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     int result = 0;
     
     if (argc == 1) {
@@ -437,10 +436,6 @@ int main(int argc, char **argv) {
         result = train_glove();
         free(cost);
     }
-    free(vocab_file);
-    free(input_file);
-    free(save_W_file);
-    free(save_gradsq_file);
     free(W);
     free(gradsq);
 
