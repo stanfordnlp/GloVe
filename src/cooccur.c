@@ -288,10 +288,15 @@ int get_cooccurrence() {
     sprintf(filename,"%s_%04d.bin", file_head, fidcounter);
     foverflow = fopen(filename,"wb");
     if (verbose > 1) fprintf(stderr,"Processing token: 0");
+
+    // if symmetric > 0, we can increment ind twice per iteration,
+    // meaning up to 2x window_size in one loop
+    int overflow_threshold = symmetric == 0 ? overflow_length - window_size : overflow_length - 2 * window_size;
     
     /* For each token in input stream, calculate a weighted cooccurrence sum within window_size */
     while (1) {
-        if (ind >= overflow_length - window_size) { // If overflow buffer is (almost) full, sort it and write it to temporary file
+        if (ind >= overflow_threshold) {
+            // If overflow buffer is (almost) full, sort it and write it to temporary file
             qsort(cr, ind, sizeof(CREC), compare_crec);
             write_chunk(cr,ind,foverflow);
             fclose(foverflow);
