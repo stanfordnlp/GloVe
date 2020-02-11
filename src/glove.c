@@ -62,16 +62,16 @@ void initialize_parameters() {
     }
     fprintf(stderr, "Using random seed %d\n", seed);
     srand(seed);
-    long long a, b;
-    vector_size++; // Temporarily increment to allocate space for bias
+    long long a;
+    long long W_size = 2 * (long long) vocab_size * ((long long) vector_size + 1); // +1 to allocate space for bias
 
     /* Allocate space for word vectors and context word vectors, and correspodning gradsq */
-    a = posix_memalign((void **)&W, 128, 2 * vocab_size * vector_size * sizeof(real)); // Might perform better than malloc
+    a = posix_memalign((void **)&W, 128, W_size * sizeof(real)); // Might perform better than malloc
     if (W == NULL) {
         fprintf(stderr, "Error allocating memory for W\n");
         exit(1);
     }
-    a = posix_memalign((void **)&gradsq, 128, 2 * vocab_size * vector_size * sizeof(real)); // Might perform better than malloc
+    a = posix_memalign((void **)&gradsq, 128, W_size * sizeof(real)); // Might perform better than malloc
     if (gradsq == NULL) {
         fprintf(stderr, "Error allocating memory for gradsq\n");
         exit(1);
@@ -86,7 +86,7 @@ void initialize_parameters() {
                 log_file_loading_error("params file", init_param_file);
                 exit(1);
             }
-            for (a = 0; a < 2 * (long long)vocab_size * (vector_size); a++) {
+            for (a = 0; a < W_size; a++) {
                 if (feof(fin)) {
                     fprintf(stderr, "EOF reached before parameters fully loaded in %s.\n", init_param_file);
                     exit(1);
@@ -97,18 +97,13 @@ void initialize_parameters() {
         }
     } else {
         // Initialize new parameters
-        for (b = 0; b < vector_size; b++) {
-            for (a = 0; a < 2 * vocab_size; a++) {
-                W[a * vector_size + b] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
-            }
+        for (a = 0; a < W_size; ++a) {
+            W[a] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
         }
     }
-    for (b = 0; b < vector_size; b++) {
-        for (a = 0; a < 2 * vocab_size; a++) {
-            gradsq[a * vector_size + b] = 1.0; // So initial value of eta is equal to initial learning rate
-        }
+    for (a = 0; a < W_size; a++) {
+        gradsq[a] = 1.0; // So initial value of eta is equal to initial learning rate
     }
-    vector_size--;
 }
 
 inline real check_nan(real update) {
