@@ -30,6 +30,12 @@
 #include <string.h>
 #include "common.h"
 
+#ifdef _MSC_VER
+#define STRERROR(ERRNO, BUF, BUFSIZE) strerror_s((BUF), (BUFSIZE), (ERRNO))
+#else
+#define STRERROR(ERRNO, BUF, BUFSIZE) strerror_r((ERRNO), (BUF), (BUFSIZE))
+#endif
+
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
     while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
@@ -141,6 +147,8 @@ void free_fid(FILE **fid, const int num) {
 int log_file_loading_error(char *file_description, char *file_name) {
     fprintf(stderr, "Unable to open %s %s.\n", file_description, file_name);
     fprintf(stderr, "Errno: %d\n", errno);
-    fprintf(stderr, "Error description: %s\n", strerror(errno));
+    char error[MAX_STRING_LENGTH];
+    STRERROR(errno, error, MAX_STRING_LENGTH);
+    fprintf(stderr, "Error description: %s\n", error);
     return errno;
 }
