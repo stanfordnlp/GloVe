@@ -43,6 +43,8 @@ int save_gradsq = 0; // By default don't save squared gradient values
 int use_binary = 0; // 0: save as text files; 1: save as binary; 2: both. For binary, save both word and context word vectors.
 int model = 2; // For text file output only. 0: concatenate word and context vectors (and biases) i.e. save everything; 1: Just save word vectors (no bias); 2: Save (word + context word) vectors (no biases)
 int checkpoint_every = 0; // checkpoint the model for every checkpoint_every iterations. Do nothing if checkpoint_every <= 0
+int load_init_param = 0; // if 1 initial paramters are loaded from -init-param-file
+int save_init_param = 0; // if 1 initial paramters are saved (i.e., in the 0 checkpoint)
 real eta = 0.05; // Initial learning rate
 real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremely sensitive to corpus, though may need adjustment for very small or very large corpora
 real grad_clip_value = 100.0; // Clipping parameter for gradient components. Values will be clipped to [-grad_clip_value, grad_clip_value] interval.
@@ -52,6 +54,7 @@ char vocab_file[MAX_STRING_LENGTH];
 char input_file[MAX_STRING_LENGTH];
 char save_W_file[MAX_STRING_LENGTH];
 char save_gradsq_file[MAX_STRING_LENGTH];
+char init_param_file[MAX_STRING_LENGTH];
 
 void initialize_parameters() {
     if (seed == 0) {
@@ -73,9 +76,31 @@ void initialize_parameters() {
         fprintf(stderr, "Error allocating memory for gradsq\n");
         exit(1);
     }
-    for (b = 0; b < vector_size; b++) {
-        for (a = 0; a < 2 * vocab_size; a++) {
-            W[a * vector_size + b] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
+    if (load_init_param) {
+        // Load existing parameters
+        if (load_init_param) {
+            fprintf(stderr, "\nLoading initial parameters from %s \n", init_param_file);
+            FILE *fin;
+            fin = fopen(init_param_file, "rb");
+            if (fin == NULL) {
+                log_file_loading_error("params file", init_param_file);
+                exit(1);
+            }
+            for (a = 0; a < 2 * (long long)vocab_size * (vector_size); a++) {
+                if (feof(fin)) {
+                    fprintf(stderr, "EOF reached before parameters fully loaded in %s.\n", init_param_file);
+                    exit(1);
+                }
+                fread(&W[a], sizeof(real), 1, fin);
+            }
+            fclose(fin);
+        }
+    } else {
+        // Initialize new parameters
+        for (b = 0; b < vector_size; b++) {
+            for (a = 0; a < 2 * vocab_size; a++) {
+                W[a * vector_size + b] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
+            }
         }
     }
     for (b = 0; b < vector_size; b++) {
@@ -186,8 +211,9 @@ void *glove_thread(void *vid) {
 int save_params(int nb_iter) {
     /*
      * nb_iter is the number of iteration (= a full pass through the cooccurrence matrix).
-     *   nb_iter > 0 => checkpointing the intermediate parameters, so nb_iter is in the filename of output file.
-     *   else        => saving the final paramters, so nb_iter is ignored.
+     *   nb_iter  > 0 => checkpointing the intermediate parameters, so nb_iter is in the filename of output file.
+     *   nb_iter == 0 => checkpointing the initial parameters
+     *   else         => saving the final paramters, so nb_iter is ignored.
      */
 
     long long a, b;
@@ -199,8 +225,10 @@ int save_params(int nb_iter) {
     }
     FILE *fid, *fout, *fgs;
     
-    if (use_binary > 0) { // Save parameters in binary file
-        if (nb_iter <= 0)
+    if (use_binary > 0 || nb_iter == 0) {
+        // Save parameters in binary file
+        // note: always save initial parameters in binary, as the reading code expects binary
+        if (nb_iter < 0)
             sprintf(output_file,"%s.bin",save_W_file);
         else
             sprintf(output_file,"%s.%03d.bin",save_W_file,nb_iter);
@@ -210,7 +238,7 @@ int save_params(int nb_iter) {
         for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
         fclose(fout);
         if (save_gradsq > 0) {
-            if (nb_iter <= 0)
+            if (nb_iter < 0)
                 sprintf(output_file_gsq,"%s.bin",save_gradsq_file);
             else
                 sprintf(output_file_gsq,"%s.%03d.bin",save_gradsq_file,nb_iter);
@@ -222,12 +250,12 @@ int save_params(int nb_iter) {
         }
     }
     if (use_binary != 1) { // Save parameters in text file
-        if (nb_iter <= 0)
+        if (nb_iter < 0)
             sprintf(output_file,"%s.txt",save_W_file);
         else
             sprintf(output_file,"%s.%03d.txt",save_W_file,nb_iter);
         if (save_gradsq > 0) {
-            if (nb_iter <= 0)
+            if (nb_iter < 0)
                 sprintf(output_file_gsq,"%s.txt",save_gradsq_file);
             else
                 sprintf(output_file_gsq,"%s.%03d.txt",save_gradsq_file,nb_iter);
@@ -327,6 +355,13 @@ int train_glove() {
     if (verbose > 1) fprintf(stderr,"Initializing parameters...");
     initialize_parameters();
     if (verbose > 1) fprintf(stderr,"done.\n");
+    if (save_init_param) {
+        if (verbose > 1) fprintf(stderr,"Saving initial parameters... ");
+        save_params_return_code = save_params(0);
+        if (save_params_return_code != 0)
+            return save_params_return_code;
+        if (verbose > 1) fprintf(stderr,"done.\n");
+    }
     if (verbose > 0) fprintf(stderr,"vector size: %d\n", vector_size);
     if (verbose > 0) fprintf(stderr,"vocab size: %lld\n", vocab_size);
     if (verbose > 0) fprintf(stderr,"x_max: %lf\n", x_max);
@@ -367,7 +402,7 @@ int train_glove() {
     }
     free(pt);
     free(lines_per_thread);
-    return save_params(0);
+    return save_params(-1);
 }
 
 int main(int argc, char **argv) {
@@ -416,6 +451,12 @@ int main(int argc, char **argv) {
         printf("\t\tSave accumulated squared gradients; default 0 (off); ignored if gradsq-file is specified\n");
         printf("\t-checkpoint-every <int>\n");
         printf("\t\tCheckpoint a  model every <int> iterations; default 0 (off)\n");
+        printf("\t-load-init-param <int>\n");
+        printf("\t\tLoad initial parameters from -init-param-file; default 0 (false)\n");
+        printf("\t-save-init-param <int>\n");
+        printf("\t\tSave initial parameters (i.e., checkpoint the model before any training); default 0 (false)\n");
+        printf("\t-init-param-file <file>\n");
+        printf("\t\tBinary initial paramters file to be loaded if -load-params is 1; (default is to look for vectors.000.bin)\n");
         printf("\t-seed <int>\n");
         printf("\t\tRandom seed to use.  If not set, will be randomized using current time.");
         printf("\nExample usage:\n");
@@ -448,6 +489,10 @@ int main(int argc, char **argv) {
         if ((i = find_arg((char *)"-input-file", argc, argv)) > 0) strcpy(input_file, argv[i + 1]);
         else strcpy(input_file, (char *)"cooccurrence.shuf.bin");
         if ((i = find_arg((char *)"-checkpoint-every", argc, argv)) > 0) checkpoint_every = atoi(argv[i + 1]);
+        if ((i = find_arg((char *)"-init-param-file", argc, argv)) > 0) strcpy(init_param_file, argv[i + 1]);
+        else strcpy(init_param_file, (char *)"vectors.000.bin");
+        if ((i = find_arg((char *)"-load-init-param", argc, argv)) > 0) load_init_param = atoi(argv[i + 1]);
+        if ((i = find_arg((char *)"-save-init-param", argc, argv)) > 0) save_init_param = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-seed", argc, argv)) > 0) seed = atoi(argv[i + 1]);
         
         vocab_size = 0;
