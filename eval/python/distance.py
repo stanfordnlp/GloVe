@@ -41,11 +41,11 @@ def distance(W, vocab, ivocab, input_term):
             if idx == 0:
                 vec_result = np.copy(W[vocab[term], :])
             else:
-                vec_result += W[vocab[term], :] 
+                vec_result += W[vocab[term], :]
         else:
             print('Word: %s  Out of dictionary!\n' % term)
             return
-    
+
     vec_norm = np.zeros(vec_result.shape)
     d = (np.sum(vec_result ** 2,) ** (0.5))
     vec_norm = (vec_result.T / d).T
@@ -73,4 +73,3 @@ if __name__ == "__main__":
             break
         else:
             distance(W, vocab, ivocab, input_term)
-
