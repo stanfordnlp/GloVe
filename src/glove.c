@@ -63,7 +63,7 @@ void initialize_parameters() {
     fprintf(stderr, "Using random seed %d\n", seed);
     srand(seed);
     long long a;
-    long long W_size = 2 * (long long) vocab_size * ((long long) vector_size + 1); // +1 to allocate space for bias
+    long long W_size = 2 * vocab_size * (vector_size + 1); // +1 to allocate space for bias
 
     /* Allocate space for word vectors and context word vectors, and correspodning gradsq */
     a = posix_memalign((void **)&W, 128, W_size * sizeof(real)); // Might perform better than malloc
@@ -230,7 +230,7 @@ int save_params(int nb_iter) {
 
         fout = fopen(output_file,"wb");
         if (fout == NULL) {log_file_loading_error("weights file", save_W_file); free(word); return 1;}
-        for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
+        for (a = 0; a < 2 * vocab_size * (vector_size + 1); a++) fwrite(&W[a], sizeof(real), 1,fout);
         fclose(fout);
         if (save_gradsq > 0) {
             if (nb_iter < 0)
@@ -240,7 +240,7 @@ int save_params(int nb_iter) {
 
             fgs = fopen(output_file_gsq,"wb");
             if (fgs == NULL) {log_file_loading_error("gradsq file", save_gradsq_file); free(word); return 1;}
-            for (a = 0; a < 2 * (long long)vocab_size * (vector_size + 1); a++) fwrite(&gradsq[a], sizeof(real), 1,fgs);
+            for (a = 0; a < 2 * vocab_size * (vector_size + 1); a++) fwrite(&gradsq[a], sizeof(real), 1,fgs);
             fclose(fgs);
         }
     }
