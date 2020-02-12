@@ -21,13 +21,20 @@
 //    GlobalVectors@googlegroups.com
 //    http://nlp.stanford.edu/projects/glove/
 
+// silence the many complaints from visual studio
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
 #include <time.h>
+
+// windows pthread.h is buggy, but this #define fixes it
+#define HAVE_STRUCT_TIMESPEC
+#include <pthread.h>
+
 #include "common.h"
 
 #define _FILE_OFFSET_BITS 64
