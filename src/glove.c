@@ -218,7 +218,8 @@ int save_params(int nb_iter) {
     if (NULL == word) {
         return 1;
     }
-    FILE *fid, *fout, *fgs;
+    FILE *fid, *fout;
+    FILE *fgs = NULL;
     
     if (use_binary > 0 || nb_iter == 0) {
         // Save parameters in binary file
