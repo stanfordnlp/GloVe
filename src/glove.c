@@ -299,7 +299,7 @@ int save_params(int nb_iter) {
             real* unk_context = (real*)calloc((vector_size + 1), sizeof(real));
             strcpy(word, "<unk>");
 
-            int num_rare_words = vocab_size < 100 ? vocab_size : 100;
+            long long num_rare_words = vocab_size < 100 ? vocab_size : 100;
 
             for (a = vocab_size - num_rare_words; a < vocab_size; a++) {
                 for (b = 0; b < (vector_size + 1); b++) {
