@@ -52,6 +52,7 @@ int model = 2; // For text file output only. 0: concatenate word and context vec
 int checkpoint_every = 0; // checkpoint the model for every checkpoint_every iterations. Do nothing if checkpoint_every <= 0
 int load_init_param = 0; // if 1 initial paramters are loaded from -init-param-file
 int save_init_param = 0; // if 1 initial paramters are saved (i.e., in the 0 checkpoint)
+int load_init_gradsq = 0; // if 1 initial squared gradients are loaded from -init-gradsq-file
 real eta = 0.05; // Initial learning rate
 real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremely sensitive to corpus, though may need adjustment for very small or very large corpora
 real grad_clip_value = 100.0; // Clipping parameter for gradient components. Values will be clipped to [-grad_clip_value, grad_clip_value] interval.
@@ -62,6 +63,25 @@ char input_file[MAX_STRING_LENGTH];
 char save_W_file[MAX_STRING_LENGTH];
 char save_gradsq_file[MAX_STRING_LENGTH];
 char init_param_file[MAX_STRING_LENGTH];
+char init_gradsq_file[MAX_STRING_LENGTH];
+
+void load_init_file(char *file_name, real *array, long long array_size) {
+    FILE *fin;
+    long long a;
+    fin = fopen(file_name, "rb");
+    if (fin == NULL) {
+        log_file_loading_error("init file", file_name);
+        exit(1);
+    }
+    for (a = 0; a < array_size; a++) {
+        if (feof(fin)) {
+            fprintf(stderr, "EOF reached before data fully loaded in %s.\n", file_name);
+            exit(1);
+        }
+        fread(&array[a], sizeof(real), 1, fin);
+    }
+    fclose(fin);
+}
 
 void initialize_parameters() {
     if (seed == 0) {
@@ -85,31 +105,24 @@ void initialize_parameters() {
     }
     if (load_init_param) {
         // Load existing parameters
-        if (load_init_param) {
-            fprintf(stderr, "\nLoading initial parameters from %s \n", init_param_file);
-            FILE *fin;
-            fin = fopen(init_param_file, "rb");
-            if (fin == NULL) {
-                log_file_loading_error("params file", init_param_file);
-                exit(1);
-            }
-            for (a = 0; a < W_size; a++) {
-                if (feof(fin)) {
-                    fprintf(stderr, "EOF reached before parameters fully loaded in %s.\n", init_param_file);
-                    exit(1);
-                }
-                fread(&W[a], sizeof(real), 1, fin);
-            }
-            fclose(fin);
-        }
+        fprintf(stderr, "\nLoading initial parameters from %s \n", init_param_file);
+        load_init_file(init_param_file, W, W_size);
     } else {
         // Initialize new parameters
         for (a = 0; a < W_size; ++a) {
             W[a] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
         }
     }
-    for (a = 0; a < W_size; a++) {
-        gradsq[a] = 1.0; // So initial value of eta is equal to initial learning rate
+
+    if (load_init_gradsq) {
+        // Load existing squared gradients
+        fprintf(stderr, "\nLoading initial squared gradients from %s \n", init_gradsq_file);
+        load_init_file(init_gradsq_file, gradsq, W_size);
+    } else {
+        // Initialize new squared gradients
+        for (a = 0; a < W_size; ++a) {
+            gradsq[a] = 1.0; // So initial value of eta is equal to initial learning rate
+        }
     }
 }
 
@@ -393,7 +406,7 @@ int train_glove() {
         fprintf(stderr, "%s, iter: %03d, cost: %lf\n", time_buffer,  b+1, total_cost/num_lines);
 
         if (checkpoint_every > 0 && (b + 1) % checkpoint_every == 0) {
-            fprintf(stderr,"    saving itermediate parameters for iter %03d...", b+1);
+            fprintf(stderr,"    saving intermediate parameters for iter %03d...", b+1);
             save_params_return_code = save_params(b+1);
             if (save_params_return_code != 0) {
                 free(pt);
@@ -459,7 +472,11 @@ int main(int argc, char **argv) {
         printf("\t-save-init-param <int>\n");
         printf("\t\tSave initial parameters (i.e., checkpoint the model before any training); default 0 (false)\n");
         printf("\t-init-param-file <file>\n");
-        printf("\t\tBinary initial paramters file to be loaded if -load-params is 1; (default is to look for vectors.000.bin)\n");
+        printf("\t\tBinary initial parameters file to be loaded if -load-init-params is 1; (default is to look for vectors.000.bin)\n");
+        printf("\t-load-init-gradsq <int>\n");
+        printf("\t\tLoad initial squared gradients from -init-gradsq-file; default 0 (false)\n");
+        printf("\t-init-gradsq-file <file>\n");
+        printf("\t\tBinary initial squared gradients file to be loaded if -load-init-gradsq is 1; (default is to look for gradsq.000.bin)\n");
         printf("\t-seed <int>\n");
         printf("\t\tRandom seed to use.  If not set, will be randomized using current time.");
         printf("\nExample usage:\n");
@@ -496,6 +513,9 @@ int main(int argc, char **argv) {
         else strcpy(init_param_file, (char *)"vectors.000.bin");
         if ((i = find_arg((char *)"-load-init-param", argc, argv)) > 0) load_init_param = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-save-init-param", argc, argv)) > 0) save_init_param = atoi(argv[i + 1]);
+        if ((i = find_arg((char *)"-init-gradsq-file", argc, argv)) > 0) strcpy(init_gradsq_file, argv[i + 1]);
+        else strcpy(init_gradsq_file, (char *)"gradsq.000.bin");
+        if ((i = find_arg((char *)"-load-init-gradsq", argc, argv)) > 0) load_init_gradsq = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-seed", argc, argv)) > 0) seed = atoi(argv[i + 1]);
         
         vocab_size = 0;
