@@ -87,7 +87,32 @@ rm $BASE_PREFIX $TEST_PREFIX
 
 # ----
 
-rm $VOCAB_FILE $COOCCURRENCE_FILE $COOCCURRENCE_SHUF_FILE
+printf "\n- TEST: Should be able to save/load initial parameters and gradsq\n"
+# note: the seed will be randomly assigned and should not matter
+$BUILDDIR/glove -save-file $BASE_PREFIX -gradsq-file $BASE_PREFIX.gradsq -threads 1 -input-file $COOCCURRENCE_SHUF_FILE -iter 6 -vector-size 10 -binary 1 -vocab-file $VOCAB_FILE -verbose 0 -checkpoint-every 2
+
+$BUILDDIR/glove -save-file $TEST_PREFIX -gradsq-file $TEST_PREFIX.gradsq -threads 1 -input-file $COOCCURRENCE_SHUF_FILE -iter 4 -vector-size 10 -binary 1 -vocab-file $VOCAB_FILE -verbose 0 -checkpoint-every 2 -load-init-param 1 -init-param-file "$BASE_PREFIX.002.bin" -load-init-gradsq 1 -init-gradsq-file "$BASE_PREFIX.gradsq.002.bin"
+
+echo "Compare vectors before & after load gradsq - 2 iterations"
+check_exit 0 "cmp --quiet $BASE_PREFIX.004.bin $TEST_PREFIX.002.bin"
+echo "Compare vectors before & after load gradsq - 4 iterations"
+check_exit 0 "cmp --quiet $BASE_PREFIX.006.bin $TEST_PREFIX.004.bin"
+echo "Compare vectors before & after load gradsq - final"
+check_exit 0 "cmp --quiet $BASE_PREFIX.bin $TEST_PREFIX.bin"
+
+echo "Compare gradsq before & after load gradsq - 2 iterations"
+check_exit 0 "cmp --quiet $BASE_PREFIX.gradsq.004.bin $TEST_PREFIX.gradsq.002.bin"
+echo "Compare gradsq before & after load gradsq - 4 iterations"
+check_exit 0 "cmp --quiet $BASE_PREFIX.gradsq.006.bin $TEST_PREFIX.gradsq.004.bin"
+echo "Compare gradsq before & after load gradsq - final"
+check_exit 0 "cmp --quiet $BASE_PREFIX.gradsq.bin $TEST_PREFIX.gradsq.bin"
+
+echo "Cleaning up files"
+check_exit 0 "rm $BASE_PREFIX.002.bin $BASE_PREFIX.004.bin $BASE_PREFIX.006.bin $BASE_PREFIX.bin"
+check_exit 0 "rm $BASE_PREFIX.gradsq.002.bin $BASE_PREFIX.gradsq.004.bin $BASE_PREFIX.gradsq.006.bin $BASE_PREFIX.gradsq.bin"
+check_exit 0 "rm $TEST_PREFIX.002.bin $TEST_PREFIX.004.bin $TEST_PREFIX.bin"
+check_exit 0 "rm $TEST_PREFIX.gradsq.002.bin $TEST_PREFIX.gradsq.004.bin $TEST_PREFIX.gradsq.bin"
+check_exit 0 "rm $VOCAB_FILE $COOCCURRENCE_FILE $COOCCURRENCE_SHUF_FILE"
 
 echo
 echo SUMMARY:
