@@ -65,25 +65,32 @@ char save_gradsq_file[MAX_STRING_LENGTH];
 char init_param_file[MAX_STRING_LENGTH];
 char init_gradsq_file[MAX_STRING_LENGTH];
 
-void load_init_file(char *file_name, real *array, long long array_size) {
+/**
+ * Loads a save file for use as the initial values for the parameters or gradsq
+ * Return value: 0 if success, -1 if fail
+ */
+int load_init_file(char *file_name, real *array, long long array_size) {
     FILE *fin;
     long long a;
     fin = fopen(file_name, "rb");
     if (fin == NULL) {
         log_file_loading_error("init file", file_name);
-        exit(1);
+        return -1;
     }
     for (a = 0; a < array_size; a++) {
         if (feof(fin)) {
             fprintf(stderr, "EOF reached before data fully loaded in %s.\n", file_name);
-            exit(1);
+            fclose(fin);
+            return -1;
         }
         fread(&array[a], sizeof(real), 1, fin);
     }
     fclose(fin);
+    return 0;
 }
 
 void initialize_parameters() {
+    // TODO: return an error code when an error occurs, clean up in the calling routine
     if (seed == 0) {
         seed = time(0);
     }
@@ -101,12 +108,17 @@ void initialize_parameters() {
     a = posix_memalign((void **)&gradsq, 128, W_size * sizeof(real)); // Might perform better than malloc
     if (gradsq == NULL) {
         fprintf(stderr, "Error allocating memory for gradsq\n");
+        free(W);
         exit(1);
     }
     if (load_init_param) {
         // Load existing parameters
         fprintf(stderr, "\nLoading initial parameters from %s \n", init_param_file);
-        load_init_file(init_param_file, W, W_size);
+        if (load_init_file(init_param_file, W, W_size)) {
+            free(W);
+            free(gradsq);
+            exit(1);
+        }
     } else {
         // Initialize new parameters
         for (a = 0; a < W_size; ++a) {
@@ -117,7 +129,11 @@ void initialize_parameters() {
     if (load_init_gradsq) {
         // Load existing squared gradients
         fprintf(stderr, "\nLoading initial squared gradients from %s \n", init_gradsq_file);
-        load_init_file(init_gradsq_file, gradsq, W_size);
+        if (load_init_file(init_gradsq_file, gradsq, W_size)) {
+            free(W);
+            free(gradsq);
+            exit(1);
+        }
     } else {
         // Initialize new squared gradients
         for (a = 0; a < W_size; ++a) {
