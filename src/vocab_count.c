@@ -147,8 +147,8 @@ int get_counts() {
 }
 
 int main(int argc, char **argv) {
-    int i;
-    if (argc == 1) {
+    if (argc == 2 &&
+        (!scmp(argv[1], "-h") || !scmp(argv[1], "-help") || !scmp(argv[1], "--help"))) {
         printf("Simple tool to extract unigram counts\n");
         printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
         printf("Usage options:\n");
@@ -162,7 +162,8 @@ int main(int argc, char **argv) {
         printf("./vocab_count -verbose 2 -max-vocab 100000 -min-count 10 < corpus.txt > vocab.txt\n");
         return 0;
     }
-    
+
+    int i;
     if ((i = find_arg((char *)"-verbose", argc, argv)) > 0) verbose = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-max-vocab", argc, argv)) > 0) max_vocab = atoll(argv[i + 1]);
     if ((i = find_arg((char *)"-min-count", argc, argv)) > 0) min_count = atoll(argv[i + 1]);
