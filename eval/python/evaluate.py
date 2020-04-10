@@ -30,9 +30,9 @@ def main():
     W_norm = np.zeros(W.shape)
     d = (np.sum(W ** 2, 1) ** (0.5))
     W_norm = (W.T / d).T
-    evaluate_vectors(W_norm, vocab, ivocab)
+    evaluate_vectors(W_norm, vocab)
 
-def evaluate_vectors(W, vocab, ivocab):
+def evaluate_vectors(W, vocab):
     """Evaluate the trained word vectors on a variety of tasks"""
 
     filenames = [
