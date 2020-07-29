@@ -1,7 +1,16 @@
 import argparse
 import numpy as np
+import code
 
-def main():
+def abc(W, vocab, ivocab, a, b, c):
+    # Do vector of b - a + c
+    pred_vec = (W[vocab[a], :] - W[vocab[b], :]
+        +  W[vocab[c], :])
+    dist = np.dot(W, pred_vec.T)
+    prediction = np.argmax(dist, 0)
+    print ivocab[prediction]
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--vocab_file', default='vocab.txt', type=str)
     parser.add_argument('--vectors_file', default='vectors.txt', type=str)
@@ -13,7 +22,7 @@ def main():
         vectors = {}
         for line in f:
             vals = line.rstrip().split(' ')
-            vectors[vals[0]] = [float(x) for x in vals[1:]]
+            vectors[vals[0]] = map(float, vals[1:])
 
     vocab_size = len(words)
     vocab = {w: idx for idx, w in enumerate(words)}
@@ -21,7 +30,7 @@ def main():
 
     vector_dim = len(vectors[ivocab[0]])
     W = np.zeros((vocab_size, vector_dim))
-    for word, v in vectors.items():
+    for word, v in vectors.iteritems():
         if word == '<unk>':
             continue
         W[vocab[word], :] = v
@@ -31,6 +40,8 @@ def main():
     d = (np.sum(W ** 2, 1) ** (0.5))
     W_norm = (W.T / d).T
     evaluate_vectors(W_norm, vocab)
+    # abc(W, vocab, ivocab, a, b, c)
+    # code.interact(local=locals())
 
 def evaluate_vectors(W, vocab):
     """Evaluate the trained word vectors on a variety of tasks"""
@@ -56,7 +67,7 @@ def evaluate_vectors(W, vocab):
     count_tot = 0 # count all questions
     full_count = 0 # count all questions, including those with unknown words
 
-    for i in range(len(filenames)):
+    for i in xrange(len(filenames)):
         with open('%s/%s' % (prefix, filenames[i]), 'r') as f:
             full_data = [line.rstrip().split(' ') for line in f]
             full_count += len(full_data)
@@ -72,7 +83,7 @@ def evaluate_vectors(W, vocab):
 
         predictions = np.zeros((len(indices),))
         num_iter = int(np.ceil(len(indices) / float(split_size)))
-        for j in range(num_iter):
+        for j in xrange(num_iter):
             subset = np.arange(j*split_size, min((j + 1)*split_size, len(ind1)))
 
             pred_vec = (W[ind2[subset], :] - W[ind1[subset], :]
@@ -80,7 +91,7 @@ def evaluate_vectors(W, vocab):
             #cosine similarity if input W has been normalized
             dist = np.dot(W, pred_vec.T)
 
-            for k in range(len(subset)):
+            for k in xrange(len(subset)):
                 dist[ind1[subset[k]], k] = -np.Inf
                 dist[ind2[subset[k]], k] = -np.Inf
                 dist[ind3[subset[k]], k] = -np.Inf
@@ -109,7 +120,3 @@ def evaluate_vectors(W, vocab):
     print('Syntactic accuracy: %.2f%%  (%i/%i)' %
         (100 * correct_syn / float(count_syn), correct_syn, count_syn))
     print('Total accuracy: %.2f%%  (%i/%i)' % (100 * correct_tot / float(count_tot), correct_tot, count_tot))
-
-
-if __name__ == "__main__":
-    main()
