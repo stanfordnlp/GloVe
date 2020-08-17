@@ -174,9 +174,9 @@ int shuffle_by_chunks() {
 
 int main(int argc, char **argv) {
     int i;
-    file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
     
-    if (argc == 1) {
+    if (argc == 2 &&
+        (!scmp(argv[1], "-h") || !scmp(argv[1], "-help") || !scmp(argv[1], "--help"))) {
         printf("Tool to shuffle entries of word-word cooccurrence files\n");
         printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
         printf("Usage options:\n");
@@ -192,10 +192,10 @@ int main(int argc, char **argv) {
         printf("\t\tRandom seed to use.  If not set, will be randomized using current time.");
         printf("\nExample usage: (assuming 'cooccurrence.bin' has been produced by 'coccur')\n");
         printf("./shuffle -verbose 2 -memory 8.0 < cooccurrence.bin > cooccurrence.shuf.bin\n");
-        free(file_head);
         return 0;
     }
-   
+
+    file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
     if ((i = find_arg((char *)"-verbose", argc, argv)) > 0) verbose = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-temp-file", argc, argv)) > 0) strcpy(file_head, argv[i + 1]);
     else strcpy(file_head, (char *)"temp_shuffle");
