@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import sys
 
 def generate():
     parser = argparse.ArgumentParser()
@@ -70,8 +71,9 @@ def distance(W, vocab, ivocab, input_term):
 if __name__ == "__main__":
     N = 100;          # number of closest words that will be shown
     W, vocab, ivocab = generate()
+    input_message = "\nEnter three words (EXIT to break): "
     while True:
-        input_term = input("\nEnter three words (EXIT to break): ")
+        input_term = raw_input(input_message) if sys.version_info < (3, 0) else input(input_message)
         if input_term == 'EXIT':
             break
         else:
