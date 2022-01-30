@@ -1,6 +1,5 @@
 import argparse
 import numpy as np
-import sys
 
 def generate():
     parser = argparse.ArgumentParser()
