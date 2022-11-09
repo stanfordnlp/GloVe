@@ -64,6 +64,16 @@ char save_W_file[MAX_STRING_LENGTH];
 char save_gradsq_file[MAX_STRING_LENGTH];
 char init_param_file[MAX_STRING_LENGTH];
 char init_gradsq_file[MAX_STRING_LENGTH];
+// Initialize adam variables
+//real v_dW_l1, v_dW_l2 = 0; // [vector for same size as gradsq and W] //TODO do i need to make these a matrix for each word?
+//real s_dW_l1, s_dW_l2 = 0;
+//real v_db_l1, v_db_l2 = 0;
+//real s_db_l1, s_db_l2 = 0;
+real *v_dW, *s_dW;
+real beta_1 = 0.9, beta_2 = 0.999;
+real epsilon = 0.000000001;
+int t = 0;
+int c = 10;
 
 /**
  * Loads a save file for use as the initial values for the parameters or gradsq
@@ -111,6 +121,18 @@ void initialize_parameters() {
         free(W);
         exit(1);
     }
+    a = posix_memalign((void **)&v_dW, 128, W_size * sizeof(real));
+    if (v_dW == NULL) {
+        fprintf(stderr, "Error allocating memory for v_dW\n");
+        free(v_dW);
+        exit(1);
+    }
+    a = posix_memalign((void **)&s_dW, 128, W_size * sizeof(real));
+    if (s_dW == NULL) {
+        fprintf(stderr, "Error allocating memory for s_dW\n");
+        free(s_dW);
+        exit(1);
+    }
     if (load_init_param) {
         // Load existing parameters
         fprintf(stderr, "\nLoading initial parameters from %s \n", init_param_file);
@@ -123,11 +145,14 @@ void initialize_parameters() {
         // Initialize new parameters
         for (a = 0; a < W_size; ++a) {
             W[a] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
+            v_dW[a] = 0;
+            s_dW[a] = 0;
         }
     }
 
     if (load_init_gradsq) {
         // Load existing squared gradients
+        //TODO: HAVE TO INITIALIZE V_DW and S_DW
         fprintf(stderr, "\nLoading initial squared gradients from %s \n", init_gradsq_file);
         if (load_init_file(init_gradsq_file, gradsq, W_size)) {
             free(W);
@@ -156,7 +181,7 @@ void *glove_thread(void *vid) {
     long long a, b ,l1, l2;
     long long id = *(long long*)vid;
     CREC cr;
-    real diff, fdiff, temp1, temp2;
+    real diff, fdiff;
     FILE *fin;
     fin = fopen(input_file, "rb");
     if (fin == NULL) {
@@ -178,6 +203,7 @@ void *glove_thread(void *vid) {
         free(W_updates1);
         pthread_exit(NULL);
     }
+
     for (a = 0; a < lines_per_thread[id]; a++) {
         fread(&cr, sizeof(CREC), 1, fin);
         if (feof(fin)) break;
@@ -186,12 +212,18 @@ void *glove_thread(void *vid) {
         /* Get location of words in W & gradsq */
         l1 = (cr.word1 - 1LL) * (vector_size + 1); // cr word indices start at 1
         l2 = ((cr.word2 - 1LL) + vocab_size) * (vector_size + 1); // shift by vocab_size to get separate vectors for context words
-        
+        int print_debug = 0;
+//        printf("l1 %d\n", l1);
+        if(c == 0){
+            print_debug = 0;
+            c --;
+        }
         /* Calculate cost, save diff for gradients */
         diff = 0;
         for (b = 0; b < vector_size; b++) diff += W[b + l1] * W[b + l2]; // dot product of word and context word vector
         diff += W[vector_size + l1] + W[vector_size + l2] - log(cr.val); // add separate bias for each word
         fdiff = (cr.val > x_max) ? diff : pow(cr.val / x_max, alpha) * diff; // multiply weighting function (f) with diff
+//        printf("fdiff original: %.6f", fdiff);
 
         // Check for NaN and inf() in the diffs.
         if (isnan(diff) || isnan(fdiff) || isinf(diff) || isinf(fdiff)) {
@@ -200,40 +232,75 @@ void *glove_thread(void *vid) {
         }
 
         cost[id] += 0.5 * fdiff * diff; // weighted squared error
-        
-        /* Adaptive gradient updates */
-        real W_updates1_sum = 0;
-        real W_updates2_sum = 0;
-        for (b = 0; b < vector_size; b++) {
-            // learning rate times gradient for word vectors
-            temp1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value) * eta;
-            temp2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value) * eta;
-            // adaptive updates
-            W_updates1[b] = temp1 / sqrt(gradsq[b + l1]);
-            W_updates2[b] = temp2 / sqrt(gradsq[b + l2]);
-            W_updates1_sum += W_updates1[b];
-            W_updates2_sum += W_updates2[b];
-            gradsq[b + l1] += temp1 * temp1;
-            gradsq[b + l2] += temp2 * temp2;
-        }
-        if (!isnan(W_updates1_sum) && !isinf(W_updates1_sum) && !isnan(W_updates2_sum) && !isinf(W_updates2_sum)) {
-            for (b = 0; b < vector_size; b++) {
-                W[b + l1] -= W_updates1[b];
-                W[b + l2] -= W_updates2[b];
-            }
-        }
+        if(print_debug == 1) {printf("cost %.6f \n", cost[id]);}
 
-        // updates for bias terms
-        W[vector_size + l1] -= check_nan(fdiff / sqrt(gradsq[vector_size + l1]));
-        W[vector_size + l2] -= check_nan(fdiff / sqrt(gradsq[vector_size + l2]));
+
+        /* Adaptive gradient updates */
+        for (b = 0; b < vector_size; b++) {
+            //printf("\t\t Vector %d\n", b);
+            // learning rate times gradient for word vectors
+            // TODO: NEED TO CHANGE TO ADAM
+            // This code snippet from original code
+//            temp1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value) * eta;
+//            temp2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value) * eta;
+            real dW_l1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value);// sqrt(fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value));
+            real dW_l2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value);
+            if(print_debug == 1){
+                printf("old gradient l1 %.6f and l1 %lld\n", dW_l1, l1);
+                printf("old gradient l2 %.6f and l2 %lld\n", dW_l2, l2);
+            }
+            v_dW[b + l1] = beta_1 * v_dW[b + l1] + (1 - beta_1)*dW_l1;
+            v_dW[b + l2] = beta_1 * v_dW[b + l2] + (1 - beta_1)*dW_l2;
+            s_dW[b + l1] = beta_2 * s_dW[b + l1] + (1 - beta_2)*pow(dW_l1, 2); //pow dW_l1
+            s_dW[b + l2] = beta_2 * s_dW[b + l2] + (1 - beta_2)*pow(dW_l2, 2);
+
+            real v_dW_l1_corrected = v_dW[b + l1] / (1 - pow(beta_1, t));
+            real v_dW_l2_corrected = v_dW[b + l2] / (1 - pow(beta_1, t));
+            real s_dW_l1_corrected = s_dW[b + l1] / (1 - pow(beta_2, t));
+            real s_dW_l2_corrected = s_dW[b + l2] / (1 - pow(beta_2, t));
+//            printf("t %d\n", t);
+            real change_l1 = (eta * v_dW_l1_corrected) / (sqrt(s_dW_l1_corrected) + epsilon);
+            if(print_debug == 1) {printf("change 1 %.6f\n", change_l1);}
+            real change_l2 = (eta * v_dW_l2_corrected) / (sqrt(s_dW_l2_corrected) + epsilon);
+            if(print_debug == 1) {printf("change 2 %.6f\n", change_l2);}
+
+            W[b + l1] -= change_l1;
+            if(print_debug == 1) {printf("new gradient l1 %.6f\n", W[b+l1]);}
+            W[b + l2] -= change_l2;
+            if(print_debug == 1) {printf("new gradient l2 %.6f\n", W[b+l2]);}
+//            gradsq[b + l1] += change_l1 * change_l1; // Do same thing with grads?
+//            gradsq[b + l2] += change_l2 * change_l2;
+//            gradsq[b + l1] += W[b + l1] * W[b + l1]; // Do same thing with grads?
+//            gradsq[b + l2] += W[b + l2] * W[b + l2];
+        }
+        print_debug = 0;
+        real db_l1 = fmin(fmax(fdiff * W[vector_size + l2], -grad_clip_value), grad_clip_value);
+        real db_l2 = fmin(fmax(fdiff * W[vector_size + l1], -grad_clip_value), grad_clip_value);
+        v_dW[vector_size + l1] = beta_1 * v_dW[vector_size + l1] + (1 - beta_1)*db_l1;
+        v_dW[vector_size + l2] = beta_1 * v_dW[vector_size + l2] + (1 - beta_1)*db_l2;
+        s_dW[vector_size + l1] = beta_2 * s_dW[vector_size + l1] + (1 - beta_2)*pow(db_l1, 2);
+        s_dW[vector_size + l2] = beta_2 * s_dW[vector_size + l2] + (1 - beta_2)*pow(db_l2, 2);
+
+        real v_db_l1_corrected = v_dW[vector_size + l1] / (1 - pow(beta_1, t));
+        real v_db_l2_corrected = v_dW[vector_size + l2] / (1 - pow(beta_1, t));
+        real s_db_l1_corrected = s_dW[vector_size + l1] / (1 - pow(beta_2, t));
+        real s_db_l2_corrected = s_dW[vector_size + l2] / (1 - pow(beta_2, t));
+
+        real change_l1 = (eta * v_db_l1_corrected) / (sqrt(s_db_l1_corrected) + epsilon);
+        real change_l2 = (eta * v_db_l2_corrected) / (sqrt(s_db_l2_corrected) + epsilon);
+
+        W[vector_size + l1] -= change_l1;
+//        printf("change 1 bias %.6f\n", change_l1);
+        W[vector_size + l2] -= change_l2;
+//        printf("change 2 bias %.6f\n", change_l2);
+
         fdiff *= fdiff;
-        gradsq[vector_size + l1] += fdiff;
-        gradsq[vector_size + l2] += fdiff;
-        
+//        printf("fdiff %.6f", fdiff);
+//        gradsq[vector_size + l1] += fdiff;
+//        gradsq[vector_size + l2] += fdiff;
+//        gradsq[vector_size + l1] += W[vector_size + l1] * W[vector_size + l1];
+//        gradsq[vector_size + l2] += W[vector_size + l2] * W[vector_size + l2];
     }
-    free(W_updates1);
-    free(W_updates2);
-    
     fclose(fin);
     pthread_exit(NULL);
 }
@@ -325,9 +392,9 @@ int save_params(int nb_iter) {
                 // Eat irrelevant frequency entry
                 fclose(fout);
                 fclose(fid);
-                free(word); 
+                free(word);
                 return 1;
-                } 
+                }
         }
 
         if (use_unk_vec) {
@@ -406,6 +473,8 @@ int train_glove() {
     char time_buffer[80];
     // Lock-free asynchronous SGD
     for (b = 0; b < num_iter; b++) {
+        t = b + 1;
+        printf("Iteration %d \n", b);
         total_cost = 0;
         for (a = 0; a < num_threads - 1; a++) lines_per_thread[a] = num_lines / num_threads;
         lines_per_thread[a] = num_lines / num_threads + num_lines % num_threads;
@@ -545,6 +614,7 @@ int main(int argc, char **argv) {
     }
     free(W);
     free(gradsq);
-
+    free(v_dW);
+    free(s_dW);
     return result;
 }
