@@ -53,7 +53,7 @@ int checkpoint_every = 0; // checkpoint the model for every checkpoint_every ite
 int load_init_param = 0; // if 1 initial paramters are loaded from -init-param-file
 int save_init_param = 0; // if 1 initial paramters are saved (i.e., in the 0 checkpoint)
 int load_init_gradsq = 0; // if 1 initial squared gradients are loaded from -init-gradsq-file
-real eta = 0.05; // Initial learning rate
+real eta = 0.005; // Initial learning rate
 real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremely sensitive to corpus, though may need adjustment for very small or very large corpora
 real grad_clip_value = 100.0; // Clipping parameter for gradient components. Values will be clipped to [-grad_clip_value, grad_clip_value] interval.
 real *W, *gradsq, *cost;
@@ -74,6 +74,7 @@ real beta_1 = 0.9, beta_2 = 0.999;
 real epsilon = 0.000000001;
 int t = 0;
 int c = 10;
+real weight_decay = 0.005;
 
 /**
  * Loads a save file for use as the initial values for the parameters or gradsq
@@ -259,8 +260,8 @@ void *glove_thread(void *vid) {
             real v_dW_l2_corrected = v_dW[b + l2] * inv_beta_1_t;
             real s_dW_l1_corrected = s_dW[b + l1] * inv_beta_2_t;
             real s_dW_l2_corrected = s_dW[b + l2] * inv_beta_2_t;
-            real change_l1 = (eta * v_dW_l1_corrected) / (sqrt(s_dW_l1_corrected) + epsilon);
-            real change_l2 = (eta * v_dW_l2_corrected) / (sqrt(s_dW_l2_corrected) + epsilon);
+            real change_l1 = eta * (v_dW_l1_corrected / (sqrt(s_dW_l1_corrected) + epsilon) + weight_decay * W[b + l1]); // AdamW
+            real change_l2 = eta * (v_dW_l2_corrected / (sqrt(s_dW_l2_corrected) + epsilon) + weight_decay * W[b + l2]);
             if (print_debug == 1) {
                 printf("change 1 %.6f\n", change_l1);
                 printf("change 2 %.6f\n", change_l2);
@@ -287,8 +288,8 @@ void *glove_thread(void *vid) {
         real s_db_l1_corrected = s_dW[vector_size + l1] * inv_beta_2_t;
         real s_db_l2_corrected = s_dW[vector_size + l2] * inv_beta_2_t;
 
-        real change_l1 = (eta * v_db_l1_corrected) / (sqrt(s_db_l1_corrected) + epsilon);
-        real change_l2 = (eta * v_db_l2_corrected) / (sqrt(s_db_l2_corrected) + epsilon);
+        real change_l1 = eta * (v_db_l1_corrected / (sqrt(s_db_l1_corrected) + epsilon) + weight_decay * W[vector_size + l1]); //AdamW
+        real change_l2 = eta * (v_db_l2_corrected / (sqrt(s_db_l2_corrected) + epsilon) + weight_decay * W[vector_size + l2]); //AdamW
 
         W[vector_size + l1] -= change_l1;
         W[vector_size + l2] -= change_l2;
