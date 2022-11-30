@@ -223,7 +223,6 @@ void *glove_thread(void *vid) {
         for (b = 0; b < vector_size; b++) diff += W[b + l1] * W[b + l2]; // dot product of word and context word vector
         diff += W[vector_size + l1] + W[vector_size + l2] - log(cr.val); // add separate bias for each word
         fdiff = (cr.val > x_max) ? diff : pow(cr.val / x_max, alpha) * diff; // multiply weighting function (f) with diff
-//        printf("fdiff original: %.6f", fdiff);
 
         // Check for NaN and inf() in the diffs.
         if (isnan(diff) || isnan(fdiff) || isinf(diff) || isinf(fdiff)) {
@@ -239,11 +238,7 @@ void *glove_thread(void *vid) {
         for (b = 0; b < vector_size; b++) {
             //printf("\t\t Vector %d\n", b);
             // learning rate times gradient for word vectors
-            // TODO: NEED TO CHANGE TO ADAM
-            // This code snippet from original code
-//            temp1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value) * eta;
-//            temp2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value) * eta;
-            real dW_l1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value);// sqrt(fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value));
+            real dW_l1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value);
             real dW_l2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value);
             if(print_debug == 1){
                 printf("old gradient l1 %.6f and l1 %lld\n", dW_l1, l1);
@@ -258,7 +253,6 @@ void *glove_thread(void *vid) {
             real v_dW_l2_corrected = v_dW[b + l2] / (1 - pow(beta_1, t));
             real s_dW_l1_corrected = s_dW[b + l1] / (1 - pow(beta_2, t));
             real s_dW_l2_corrected = s_dW[b + l2] / (1 - pow(beta_2, t));
-//            printf("t %d\n", t);
             real change_l1 = (eta * v_dW_l1_corrected) / (sqrt(s_dW_l1_corrected) + epsilon);
             if(print_debug == 1) {printf("change 1 %.6f\n", change_l1);}
             real change_l2 = (eta * v_dW_l2_corrected) / (sqrt(s_dW_l2_corrected) + epsilon);
@@ -268,10 +262,6 @@ void *glove_thread(void *vid) {
             if(print_debug == 1) {printf("new gradient l1 %.6f\n", W[b+l1]);}
             W[b + l2] -= change_l2;
             if(print_debug == 1) {printf("new gradient l2 %.6f\n", W[b+l2]);}
-//            gradsq[b + l1] += change_l1 * change_l1; // Do same thing with grads?
-//            gradsq[b + l2] += change_l2 * change_l2;
-//            gradsq[b + l1] += W[b + l1] * W[b + l1]; // Do same thing with grads?
-//            gradsq[b + l2] += W[b + l2] * W[b + l2];
         }
         print_debug = 0;
         real db_l1 = fmin(fmax(fdiff * W[vector_size + l2], -grad_clip_value), grad_clip_value);
@@ -290,16 +280,9 @@ void *glove_thread(void *vid) {
         real change_l2 = (eta * v_db_l2_corrected) / (sqrt(s_db_l2_corrected) + epsilon);
 
         W[vector_size + l1] -= change_l1;
-//        printf("change 1 bias %.6f\n", change_l1);
         W[vector_size + l2] -= change_l2;
-//        printf("change 2 bias %.6f\n", change_l2);
 
         fdiff *= fdiff;
-//        printf("fdiff %.6f", fdiff);
-//        gradsq[vector_size + l1] += fdiff;
-//        gradsq[vector_size + l2] += fdiff;
-//        gradsq[vector_size + l1] += W[vector_size + l1] * W[vector_size + l1];
-//        gradsq[vector_size + l2] += W[vector_size + l2] * W[vector_size + l2];
     }
     fclose(fin);
     pthread_exit(NULL);
