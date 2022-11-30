@@ -231,7 +231,7 @@ void *glove_thread(void *vid) {
         }
 
         cost[id] += 0.5 * fdiff * diff; // weighted squared error
-        if(print_debug == 1) {printf("cost %.6f \n", cost[id]);}
+        if (print_debug == 1) {printf("cost %.6f \n", cost[id]);}
 
 
         /* Adaptive gradient updates */
@@ -240,7 +240,7 @@ void *glove_thread(void *vid) {
             // learning rate times gradient for word vectors
             real dW_l1 = fmin(fmax(fdiff * W[b + l2], -grad_clip_value), grad_clip_value);
             real dW_l2 = fmin(fmax(fdiff * W[b + l1], -grad_clip_value), grad_clip_value);
-            if(print_debug == 1){
+            if (print_debug == 1){
                 printf("old gradient l1 %.6f and l1 %lld\n", dW_l1, l1);
                 printf("old gradient l2 %.6f and l2 %lld\n", dW_l2, l2);
             }
@@ -254,16 +254,21 @@ void *glove_thread(void *vid) {
             real s_dW_l1_corrected = s_dW[b + l1] / (1 - pow(beta_2, t));
             real s_dW_l2_corrected = s_dW[b + l2] / (1 - pow(beta_2, t));
             real change_l1 = (eta * v_dW_l1_corrected) / (sqrt(s_dW_l1_corrected) + epsilon);
-            if(print_debug == 1) {printf("change 1 %.6f\n", change_l1);}
             real change_l2 = (eta * v_dW_l2_corrected) / (sqrt(s_dW_l2_corrected) + epsilon);
-            if(print_debug == 1) {printf("change 2 %.6f\n", change_l2);}
+            if (print_debug == 1) {
+                printf("change 1 %.6f\n", change_l1);
+                printf("change 2 %.6f\n", change_l2);
+            }
 
             W[b + l1] -= change_l1;
-            if(print_debug == 1) {printf("new gradient l1 %.6f\n", W[b+l1]);}
             W[b + l2] -= change_l2;
-            if(print_debug == 1) {printf("new gradient l2 %.6f\n", W[b+l2]);}
+            if (print_debug == 1) {
+                printf("new gradient l1 %.6f\n", W[b+l1]);
+                printf("new gradient l2 %.6f\n", W[b+l2]);
+            }
         }
         print_debug = 0;
+        // update bias
         real db_l1 = fmin(fmax(fdiff * W[vector_size + l2], -grad_clip_value), grad_clip_value);
         real db_l2 = fmin(fmax(fdiff * W[vector_size + l1], -grad_clip_value), grad_clip_value);
         v_dW[vector_size + l1] = beta_1 * v_dW[vector_size + l1] + (1 - beta_1)*db_l1;
