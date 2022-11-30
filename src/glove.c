@@ -173,7 +173,7 @@ void *glove_thread(void *vid) {
         pthread_exit(NULL);
     }
     real* W_updates2 = (real*)malloc(vector_size * sizeof(real));
-        if (NULL == W_updates2){
+    if (NULL == W_updates2){
         fclose(fin);
         free(W_updates1);
         pthread_exit(NULL);
