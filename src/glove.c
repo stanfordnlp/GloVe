@@ -204,6 +204,12 @@ void *glove_thread(void *vid) {
         pthread_exit(NULL);
     }
 
+    // optimization (can actually have a pretty large impact):
+    // move the pow() call outside the critical loop and precompute
+    // the division as well
+    real inv_beta_1_t = 1.0 / (1 - pow(beta_1, t));
+    real inv_beta_2_t = 1.0 / (1 - pow(beta_2, t));
+
     for (a = 0; a < lines_per_thread[id]; a++) {
         fread(&cr, sizeof(CREC), 1, fin);
         if (feof(fin)) break;
@@ -249,10 +255,10 @@ void *glove_thread(void *vid) {
             s_dW[b + l1] = beta_2 * s_dW[b + l1] + (1 - beta_2)*pow(dW_l1, 2); //pow dW_l1
             s_dW[b + l2] = beta_2 * s_dW[b + l2] + (1 - beta_2)*pow(dW_l2, 2);
 
-            real v_dW_l1_corrected = v_dW[b + l1] / (1 - pow(beta_1, t));
-            real v_dW_l2_corrected = v_dW[b + l2] / (1 - pow(beta_1, t));
-            real s_dW_l1_corrected = s_dW[b + l1] / (1 - pow(beta_2, t));
-            real s_dW_l2_corrected = s_dW[b + l2] / (1 - pow(beta_2, t));
+            real v_dW_l1_corrected = v_dW[b + l1] * inv_beta_1_t;
+            real v_dW_l2_corrected = v_dW[b + l2] * inv_beta_1_t;
+            real s_dW_l1_corrected = s_dW[b + l1] * inv_beta_2_t;
+            real s_dW_l2_corrected = s_dW[b + l2] * inv_beta_2_t;
             real change_l1 = (eta * v_dW_l1_corrected) / (sqrt(s_dW_l1_corrected) + epsilon);
             real change_l2 = (eta * v_dW_l2_corrected) / (sqrt(s_dW_l2_corrected) + epsilon);
             if (print_debug == 1) {
@@ -276,10 +282,10 @@ void *glove_thread(void *vid) {
         s_dW[vector_size + l1] = beta_2 * s_dW[vector_size + l1] + (1 - beta_2)*pow(db_l1, 2);
         s_dW[vector_size + l2] = beta_2 * s_dW[vector_size + l2] + (1 - beta_2)*pow(db_l2, 2);
 
-        real v_db_l1_corrected = v_dW[vector_size + l1] / (1 - pow(beta_1, t));
-        real v_db_l2_corrected = v_dW[vector_size + l2] / (1 - pow(beta_1, t));
-        real s_db_l1_corrected = s_dW[vector_size + l1] / (1 - pow(beta_2, t));
-        real s_db_l2_corrected = s_dW[vector_size + l2] / (1 - pow(beta_2, t));
+        real v_db_l1_corrected = v_dW[vector_size + l1] * inv_beta_1_t;
+        real v_db_l2_corrected = v_dW[vector_size + l2] * inv_beta_1_t;
+        real s_db_l1_corrected = s_dW[vector_size + l1] * inv_beta_2_t;
+        real s_db_l2_corrected = s_dW[vector_size + l2] * inv_beta_2_t;
 
         real change_l1 = (eta * v_db_l1_corrected) / (sqrt(s_db_l1_corrected) + epsilon);
         real change_l2 = (eta * v_db_l2_corrected) / (sqrt(s_db_l2_corrected) + epsilon);
