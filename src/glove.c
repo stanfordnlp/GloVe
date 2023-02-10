@@ -224,8 +224,8 @@ void *glove_thread(void *vid) {
         }
 
         // updates for bias terms
-        W[vector_size + l1] -= check_nan(fdiff / sqrt(gradsq[vector_size + l1]));
-        W[vector_size + l2] -= check_nan(fdiff / sqrt(gradsq[vector_size + l2]));
+        W[vector_size + l1] -= check_nan(fmin(fmax(fdiff, -grad_clip_value), grad_clip_value) / sqrt(gradsq[vector_size + l1])) * eta;
+        W[vector_size + l2] -= check_nan(fmin(fmax(fdiff, -grad_clip_value), grad_clip_value) / sqrt(gradsq[vector_size + l2])) * eta;
         fdiff *= fdiff;
         gradsq[vector_size + l1] += fdiff;
         gradsq[vector_size + l2] += fdiff;
