@@ -34,6 +34,7 @@ If the web datasets above don't match the semantics of your end use case, you ca
 
 Make sure you have the following prerequisites installed when running the steps above:
 
+* GNU Make
 * GCC (Clang pretending to be GCC is fine)
 * Python and NumPy
 
