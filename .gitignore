@@ -37,3 +37,11 @@ build/*
 
 # OS X stuff
 ._*
+
+# demo.sh-produced artifacts
+/cooccurrence.bin
+/cooccurrence.shuf.bin
+/text8
+/vectors.bin
+/vectors.txt
+/vocab.txt
