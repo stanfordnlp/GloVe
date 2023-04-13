@@ -8,7 +8,18 @@ CC = gcc
 # see https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
 # CFLAGS = -lm -pthread -Ofast -march=native -funroll-loops -Wall -Wextra -Wpedantic
 
-CFLAGS = -lm -pthread -O3 -march=native -funroll-loops -Wall -Wextra -Wpedantic
+CPU_ARCHITECTURE = $(shell uname -m)
+OS = $(shell uname -o)
+# Non-empty string if Apple Silicon, empty string otherwise.
+APPLE_SILICON = $(and $(filter Darwin,$(OS)),$(filter arm64,$(CPU_ARCHITECTURE)))
+
+# clang (which masquerades as gcc on macOS) doesn't support this option, at least
+# not the Apple-provided clang on Apple Silicon as of macOS 13.2.1.
+ifeq ($(APPLE_SILICON),)
+CPU_ARCHITECTURE_FLAGS = -march=native
+endif
+
+CFLAGS = -lm -pthread -O3 $(CPU_ARCHITECTURE_FLAGS) -funroll-loops -Wall -Wextra -Wpedantic
 BUILDDIR := build
 SRCDIR := src
 OBJDIR := $(BUILDDIR)
