@@ -291,7 +291,7 @@ int get_cooccurrence() {
 
     // if symmetric > 0, we can increment ind twice per iteration,
     // meaning up to 2x window_size in one loop
-    int overflow_threshold = symmetric == 0 ? overflow_length - window_size : overflow_length - 2 * window_size;
+    long long const overflow_threshold = symmetric == 0 ? overflow_length - window_size : overflow_length - 2 * window_size;
     
     /* For each token in input stream, calculate a weighted cooccurrence sum within window_size */
     while (1) {
