@@ -314,6 +314,9 @@ int save_params(int nb_iter) {
                 for (b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
             if (model == 2) // Save "word + context word" vectors (without bias)
                 for (b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b] + W[(vocab_size + a) * (vector_size + 1) + b]);
+            if (model == 3) // Save "word" and "context" vectors (without bias; row-concatenated)
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", W[(vocab_size + a) * (vector_size + 1) + b]);
             fprintf(fout,"\n");
             if (save_gradsq > 0) { // Save gradsq
                 fprintf(fgs, "%s",word);
@@ -353,6 +356,9 @@ int save_params(int nb_iter) {
                 for (b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b]);
             if (model == 2) // Save "word + context word" vectors (without bias)
                 for (b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b] + unk_context[b]);
+            if (model == 3) // Save "word" and "context" vectors (without bias; row-concatenated)
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_vec[b]);
+                for (b = 0; b < vector_size; b++) fprintf(fout," %lf", unk_context[b]);
             fprintf(fout,"\n");
 
             free(unk_vec);
@@ -471,6 +477,7 @@ int main(int argc, char **argv) {
         printf("\t\t   0: output all data, for both word and context word vectors, including bias terms\n");
         printf("\t\t   1: output word vectors, excluding bias terms\n");
         printf("\t\t   2: output word vectors + context word vectors, excluding bias terms\n");
+        printf("\t\t   3: output word vectors and context word vectors, excluding bias terms; context word vectors are row-concatenated to the word vectors\n");
         printf("\t-input-file <file>\n");
         printf("\t\tBinary input file of shuffled cooccurrence data (produced by 'cooccur' and 'shuffle'); default cooccurrence.shuf.bin\n");
         printf("\t-vocab-file <file>\n");
