@@ -142,7 +142,7 @@ void initialize_parameters() {
     }
 }
 
-inline real check_nan(real update) {
+static inline real check_nan(real update) {
     if (isnan(update) || isinf(update)) {
         fprintf(stderr,"\ncaught NaN in update");
         return 0.;
