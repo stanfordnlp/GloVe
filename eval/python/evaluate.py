@@ -81,9 +81,9 @@ def evaluate_vectors(W, vocab):
             dist = np.dot(W, pred_vec.T)
 
             for k in range(len(subset)):
-                dist[ind1[subset[k]], k] = -np.Inf
-                dist[ind2[subset[k]], k] = -np.Inf
-                dist[ind3[subset[k]], k] = -np.Inf
+                dist[ind1[subset[k]], k] = -np.inf
+                dist[ind2[subset[k]], k] = -np.inf
+                dist[ind3[subset[k]], k] = -np.inf
 
             # predicted word index
             predictions[subset] = np.argmax(dist, 0).flatten()
