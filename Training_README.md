@@ -1,8 +1,8 @@
-### Overview
+#Overview
 
 Five new vectors were trained. Four of these vectors were trained on Gigaword and updated Wikipedia corpora and the fifth was traind on [Dolma](https://allenai.github.io/dolma/). This document includes the scripts used to train these five vectors. 
 
-### Data Download and Preprocessing 
+## Data Download and Preprocessing 
 
 The Wikipedia portion of the corpora was downloaded from the [7/22/2024 dump](https://dumps.wikimedia.org/enwiki/20240720/enwiki-20240720-pages-meta-current.xml.bz2). The fifth edition of [Gigaword](https://catalog.ldc.upenn.edu/LDC2011T07) was used. TODO DOLMA WHERE TO GET 
 
@@ -11,7 +11,7 @@ For tokenization, version 4.4.1 of Stanford's CoreNLP tokenizer was used. We use
 
 When combining the Wikipedia and Gigaword data, Gigaword was added twice to balance the increase in Wikipedia data from the previous training corpus.
 
-### Vector Training 
+## Vector Training 
 
 Here is the bash script used for training the vectors
 $  CORPUS=<wikigiga, dolma>
@@ -36,10 +36,10 @@ $  $BUILDDIR/vocab_count  -min-count $VOCAB_MIN_COUNT -verbose $VERBOSE < $CORPU
 $  $BUILDDIR/cooccur -memory $MEMORY -overflow-file $OVERFLOW_FILE -vocab-file $VOCAB_FILE -verbose $VERBOSE -window-size $WINDOW_SIZE < $CORPUS > $COOCCURRENCE_FILE
 $  $BUILDDIR/shuffle -memory $MEMORY -seed $SEED -verbose $VERBOSE < $COOCCURRENCE_FILE > $COOCCURRENCE_SHUF_FILE
 
-## Vocabulary:
+### Vocabulary:
 For dolma, a maximum vocabulary of 1.2M was used by passing the -max-vocab flag 
 
-## Cooccurrence building and shuffling :
+### Cooccurrence building and shuffling :
 
 
 

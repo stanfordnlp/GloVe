@@ -40,7 +40,7 @@ Make sure you have the following prerequisites installed when running the steps 
 
 The demo.sh script downloads a small corpus, consisting of the first 100M characters of Wikipedia. It collects unigram counts, constructs and shuffles cooccurrence data, and trains a simple version of the GloVe model. It also runs a word analogy evaluation script in python to verify word vector quality. More details about training on your own corpus can be found by reading [demo.sh](https://github.com/stanfordnlp/GloVe/blob/master/demo.sh) or the [src/README.md](https://github.com/stanfordnlp/GloVe/tree/master/src)
 
-### 2024 Vector Documentation 
+## 2024 Vector Documentation 
 The training scripts and data preprocessing pipeline used for training the 2024 vectors can be found in the Training_README.md
 
 Analysis and more documentation for the new vectors can be found at TODO
