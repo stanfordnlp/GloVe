@@ -4,9 +4,13 @@ Five new vectors were trained. Four of these vectors were trained on Gigaword an
 
 ## Data Download and Preprocessing 
 
-The Wikipedia portion of the corpora was downloaded from the [7/22/2024 dump](https://dumps.wikimedia.org/enwiki/20240720/enwiki-20240720-pages-meta-current.xml.bz2). The fifth edition of [Gigaword](https://catalog.ldc.upenn.edu/LDC2011T07) was used. Dolma v1.6 was used and 5% of Common Crawl, 40% of C4, 100% of Reddit, and 100% of Project Gutenberg were used. 
+The Wikipedia portion of the corpora was downloaded from the [7/22/2024 dump](https://dumps.wikimedia.org/enwiki/20240720/enwiki-20240720-pages-meta-current.xml.bz2). The text was then extracted using [Wikiextractor](https://github.com/attardi/wikiextractor) with the command 
+``` 
+python -m wikiextractor.WikiExtractor enwiki-20220620-pages-meta-current.xml --no-templates --output output_dir/
+```
+The fifth edition of [Gigaword](https://catalog.ldc.upenn.edu/LDC2011T07) was used. Dolma v1.6 was used and 5% of Common Crawl, 40% of C4, 100% of Reddit, and 100% of Project Gutenberg were used. 
 
-For tokenization, version 4.4.1 of Stanford's CoreNLP tokenizer was used. We used the script 
+For tokenization, version 4.4.1 of Stanford's Stanza tokenizer was used. We used the script 
 
 ```java edu.stanford.nlp.process.PTBTokenizer -preserveLines -lowerCase -options 'untokenizable=allKeep'```
 
