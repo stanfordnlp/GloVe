@@ -54,7 +54,7 @@ def distance(W, vocab, ivocab, input_term):
 
     for term in input_term.split(' '):
         index = vocab[term]
-        dist[index] = -np.Inf
+        dist[index] = -np.inf
 
     a = np.argsort(-dist)[:N]
 
