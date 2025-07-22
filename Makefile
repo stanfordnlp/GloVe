@@ -19,7 +19,8 @@ ifeq ($(APPLE_SILICON),)
 CPU_ARCHITECTURE_FLAGS = -march=native
 endif
 
-CFLAGS = -lm -pthread -O3 $(CPU_ARCHITECTURE_FLAGS) -funroll-loops -Wall -Wextra -Wpedantic
+CFLAGS = -pthread -O3 $(CPU_ARCHITECTURE_FLAGS) -funroll-loops -Wall -Wextra -Wpedantic
+LDLIBS = -lm -pthread
 BUILDDIR := build
 SRCDIR := src
 OBJDIR := $(BUILDDIR)
@@ -33,13 +34,13 @@ all: dir $(OBJ) $(MODULES)
 dir :
 	mkdir -p $(BUILDDIR)
 $(BUILDDIR)/glove : $(OBJDIR)/glove.o $(OBJDIR)/common.o
-	$(CC) $^ -o $@ $(CFLAGS)
+	$(CC) $^ -o $@ $(CFLAGS) $(LDLIBS)
 $(BUILDDIR)/shuffle : $(OBJDIR)/shuffle.o $(OBJDIR)/common.o
-	$(CC) $^ -o $@ $(CFLAGS)
+	$(CC) $^ -o $@ $(CFLAGS) $(LDLIBS)
 $(BUILDDIR)/cooccur : $(OBJDIR)/cooccur.o $(OBJDIR)/common.o
-	$(CC) $^ -o $@ $(CFLAGS)
+	$(CC) $^ -o $@ $(CFLAGS) $(LDLIBS)
 $(BUILDDIR)/vocab_count : $(OBJDIR)/vocab_count.o $(OBJDIR)/common.o
-	$(CC) $^ -o $@ $(CFLAGS)
+	$(CC) $^ -o $@ $(CFLAGS) $(LDLIBS)
 $(OBJDIR)/%.o : $(SRCDIR)/%.c $(HEADERS)
 	$(CC) -c $< -o $@ $(CFLAGS)
 .PHONY: clean

@@ -117,7 +117,7 @@ int shuffle_merge(int num) {
 }
 
 /* Shuffle large input stream by splitting into chunks */
-int shuffle_by_chunks() {
+int shuffle_by_chunks(void) {
     if (seed == 0) {
         seed = time(0);
     }

@@ -50,7 +50,7 @@ typedef struct hashrec {
 
 int scmp( char *s1, char *s2 );
 unsigned int bitwisehash(char *word, int tsize, unsigned int seed);
-HASHREC **inithashtable();
+HASHREC **inithashtable(void);
 int get_word(char *word, FILE *fin);
 void free_table(HASHREC **ht);
 int find_arg(char *str, int argc, char **argv);
