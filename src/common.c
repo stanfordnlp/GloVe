@@ -54,7 +54,7 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
 }
 
 /* Create hash table, initialise pointers to NULL */
-HASHREC ** inithashtable() {
+HASHREC ** inithashtable(void) {
     int i;
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
