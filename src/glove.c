@@ -89,7 +89,7 @@ int load_init_file(char *file_name, real *array, long long array_size) {
     return 0;
 }
 
-void initialize_parameters() {
+void initialize_parameters(void) {
     // TODO: return an error code when an error occurs, clean up in the calling routine
     if (seed == 0) {
         seed = time(0);
@@ -376,7 +376,7 @@ int save_params(int nb_iter) {
 }
 
 /* Train model */
-int train_glove() {
+int train_glove(void) {
     long long a, file_size;
     int save_params_return_code;
     int b;
