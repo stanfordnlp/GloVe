@@ -229,7 +229,7 @@ void free_resources(HASHREC** vocab_hash, CREC *cr, long long *lookup,
 }
 
 /* Collect word-word cooccurrence counts from input stream */
-int get_cooccurrence() {
+int get_cooccurrence(void) {
     int flag, x, y, fidcounter = 1;
     long long a, j = 0, k, id, counter = 0, ind = 0, vocab_size, w1, w2, *lookup = NULL, *history = NULL;
     char format[20], filename[200], str[MAX_STRING_LENGTH + 1];

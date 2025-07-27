@@ -84,7 +84,7 @@ void hashinsert(HASHREC **ht, char *w) {
     return;
 }
 
-int get_counts() {
+int get_counts(void) {
     long long i = 0, j = 0, vocab_size = 12500;
     // char format[20];
     char str[MAX_STRING_LENGTH + 1];

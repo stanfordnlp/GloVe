@@ -100,7 +100,7 @@ int shuffle_merge(int num) {
         }
         if (i == 0) break;
         l += i;
-        shuffle(array, i-1); // Shuffles lines between temp files
+        shuffle(array, i); // Shuffles lines between temp files
         write_chunk(array,i,fout);
         if (verbose > 0) fprintf(stderr, "\033[31G%ld lines.", l);
     }
@@ -117,7 +117,7 @@ int shuffle_merge(int num) {
 }
 
 /* Shuffle large input stream by splitting into chunks */
-int shuffle_by_chunks() {
+int shuffle_by_chunks(void) {
     if (seed == 0) {
         seed = time(0);
     }
@@ -143,7 +143,7 @@ int shuffle_by_chunks() {
     
     while (1) { //Continue until EOF
         if (i >= array_size) {// If array is full, shuffle it and save to temporary file
-            shuffle(array, i-2);
+            shuffle(array, i);
             l += i;
             if (verbose > 1) fprintf(stderr, "\033[22Gprocessed %ld lines.", l);
             write_chunk(array,i,fid);
@@ -162,7 +162,7 @@ int shuffle_by_chunks() {
         if (feof(fin)) break;
         i++;
     }
-    shuffle(array, i-2); //Last chunk may be smaller than array_size
+    shuffle(array, i); //Last chunk may be smaller than array_size
     write_chunk(array,i,fid);
     l += i;
     if (verbose > 1) fprintf(stderr, "\033[22Gprocessed %ld lines.\n", l);
