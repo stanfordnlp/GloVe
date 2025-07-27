@@ -9,7 +9,7 @@
 | --- | ------------------------|-------------------------|-------------------------|
 | GloVe Geometry | <img src="https://nlp.stanford.edu/projects/glove/images/man_woman_small.jpg"></img>  | <img src="https://nlp.stanford.edu/projects/glove/images/city_zip_small.jpg"></img> | <img src="https://nlp.stanford.edu/projects/glove/images/comparative_superlative_small.jpg"></img> |
 
-We provide an implementation of the GloVe model for learning word representations, and describe how to download web-dataset vectors or train your own. See the [project page](https://nlp.stanford.edu/projects/glove/) or the [paper](https://nlp.stanford.edu/pubs/glove.pdf) for more information on glove vectors. For documentation and analysis of 2024 vectors, please see the the [report](https://arxiv.org/abs/2507.18103)
+We provide an implementation of the GloVe model for learning word representations, and describe how to download web-dataset vectors or train your own. See the [project page](https://nlp.stanford.edu/projects/glove/) or the [paper](https://nlp.stanford.edu/pubs/glove.pdf) for more information on glove vectors. For documentation and analysis of 2024 vectors, please see the [report](https://arxiv.org/abs/2507.18103)
 
 ## Download pre-trained word vectors \*\***NEW 2024 VECTORS**\*\*
 The links below contain word vectors obtained from the respective corpora. If you want word vectors trained on massive web datasets, you need only download one of these text files! Pre-trained word vectors are made available under the <a href="https://opendatacommons.org/licenses/pddl/">Public Domain Dedication and License</a>.
